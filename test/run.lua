@@ -28,7 +28,7 @@ function eq(actual, expected, label)
     end
 end
 
-local files = { "slot-logic_test", "catalog_test", "selection_test", "plan_test" }
+local files = { "slot-logic_test", "catalog_test", "selection_test", "plan_test", "client-smoke_test" }
 for _, file in ipairs(files) do
     dofile(root .. "/test/" .. file .. ".lua")
 end
