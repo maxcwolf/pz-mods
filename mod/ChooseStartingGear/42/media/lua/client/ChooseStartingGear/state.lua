@@ -1,0 +1,145 @@
+--- Session state: the current selection, the lazily built item catalog, the
+--- remembered last selection on disk, and the flag that tells the spawn code
+--- a selection is waiting to be applied.
+require "ChooseStartingGear/runtime"
+
+CSG_State = CSG_State or {}
+local State = CSG_State
+
+State.selection = State.selection or CSG_Selection.new()
+State.entries = State.entries or nil
+State.entryMap = State.entryMap or nil
+State.weaponEntries = State.weaponEntries or nil
+State.build = nil
+State.pending = State.pending or false
+State.loaded = State.loaded or false
+
+local FILE = "ChooseStartingGear_last.txt"
+local CHUNK = 250
+
+--- Starts the incremental catalog build if it has not started yet.
+function State.beginCatalog()
+    if State.entries or State.build then
+        return
+    end
+    State.build = { all = getScriptManager():getAllItems(), index = 0, raws = {} }
+end
+
+--- Processes up to `count` script items; returns true once the catalog is ready.
+function State.stepCatalog(count)
+    if State.entries then
+        return true
+    end
+    State.beginCatalog()
+    local build = State.build
+    local total = build.all:size()
+    local stop = math.min(total, build.index + (count or CHUNK))
+    while build.index < stop do
+        local ok, raw = pcall(CSG_Runtime.rawItem, build.all:get(build.index))
+        if ok and raw then
+            table.insert(build.raws, raw)
+        end
+        build.index = build.index + 1
+    end
+    if build.index >= total then
+        State.entries = CSG_Catalog.buildEntries(build.raws)
+        State.entryMap = CSG_Catalog.byFullType(State.entries)
+        State.weaponEntries = {}
+        for _, entry in ipairs(State.entries) do
+            if entry.isWeapon then
+                table.insert(State.weaponEntries, entry)
+            end
+        end
+        State.build = nil
+        CSG_Selection.pruneUnknown(State.selection, State.isKnown)
+        print("[ChooseStartingGear] catalog ready: " .. tostring(#State.entries) .. " items")
+        return true
+    end
+    return false
+end
+
+--- Finishes the catalog build synchronously.
+function State.finishCatalog()
+    while not State.stepCatalog(100000) do end
+end
+
+--- Returns true when the catalog can be queried.
+function State.catalogReady()
+    return State.entries ~= nil
+end
+
+--- Returns build progress from 0 to 1.
+function State.catalogProgress()
+    if State.entries then
+        return 1
+    end
+    if not State.build then
+        return 0
+    end
+    local total = State.build.all:size()
+    if total == 0 then
+        return 1
+    end
+    return State.build.index / total
+end
+
+--- Returns the catalog entry for a full type, or nil.
+function State.entry(fullType)
+    return State.entryMap and State.entryMap[fullType] or nil
+end
+
+--- Returns true when the full type is in the catalog.
+function State.isKnown(fullType)
+    return State.entry(fullType) ~= nil
+end
+
+--- Returns the weight of one item of the given type.
+function State.weightOf(fullType)
+    local entry = State.entry(fullType)
+    return entry and entry.weight or 0
+end
+
+--- Saves the current selection to the player's Zomboid/Lua folder.
+function State.save()
+    local writer = getFileWriter(FILE, true, false)
+    if not writer then
+        return
+    end
+    writer:write(CSG_Selection.serialize(State.selection))
+    writer:close()
+end
+
+--- Loads the last saved selection, once per game session.
+function State.load()
+    if State.loaded then
+        return
+    end
+    State.loaded = true
+    local reader = getFileReader(FILE, true)
+    if not reader then
+        return
+    end
+    local lines = {}
+    local line = reader:readLine()
+    while line do
+        table.insert(lines, line)
+        line = reader:readLine()
+    end
+    reader:close()
+    State.selection = CSG_Selection.deserialize(table.concat(lines, "\n"))
+    if State.entries then
+        CSG_Selection.pruneUnknown(State.selection, State.isKnown)
+    end
+end
+
+--- Forgets every chosen item.
+function State.reset()
+    State.selection = CSG_Selection.new()
+    State.save()
+end
+
+--- Called when Play is pressed: persists the selection and arms the spawn hook.
+function State.markPending()
+    State.pending = not CSG_Selection.isEmpty(State.selection)
+    State.save()
+end

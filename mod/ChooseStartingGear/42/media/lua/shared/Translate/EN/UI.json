@@ -1,0 +1,16 @@
+{
+    "UI_CSG_Title": "Starting Gear",
+    "UI_CSG_Hands": "Hands",
+    "UI_CSG_PrimaryHand": "Primary hand",
+    "UI_CSG_SecondaryHand": "Secondary hand",
+    "UI_CSG_Attachments": "Attached items",
+    "UI_CSG_Containers": "Bag contents",
+    "UI_CSG_None": "None",
+    "UI_CSG_AddItem": "Type to search, then pick an item...",
+    "UI_CSG_Remove": "Remove",
+    "UI_CSG_Clear": "Clear all gear",
+    "UI_CSG_Weight": "Weight",
+    "UI_CSG_NoBags": "Wear a bag above to choose what goes in it.",
+    "UI_CSG_NoSlots": "Wear a belt, holster or sling above to unlock attachment slots.",
+    "UI_CSG_Loading": "Reading item list..."
+}

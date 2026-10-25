@@ -1,0 +1,6 @@
+name=Choose Starting Gear
+id=ChooseStartingGear
+description=Pick your starting gear on the character creation screen: items on belt, holster, back and modded sling slots, the contents of every bag you wear, and what you hold in your hands.
+modversion=0.1.0
+versionMin=42.20
+author=Max Wolf
