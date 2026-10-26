@@ -266,9 +266,17 @@ ResourceLocation = { of = function(x) return x end }
 
 --- Fake SurvivorDesc over a mutable worn list of { item, location }.
 function Stubs.desc(worn)
-    local desc = { worn = worn }
+    local desc = { worn = worn, look = { hair = "Bald" } }
     function desc:getWornItems() return Stubs.wornItems(self.worn) end
     function desc:isFemale() return false end
+    function desc:getHumanVisual()
+        local look = self.look
+        return {
+            getHairModel = function() return look.hair end, getBeardModel = function() return nil end,
+            getSkinTextureIndex = function() return 1 end, getBodyHairIndex = function() return 0 end,
+            getHairColor = function() return "c1" end, getBeardColor = function() return "c2" end, getSkinColor = function() return "c3" end,
+        }
+    end
     function desc:getWornItem(location)
         for _, w in ipairs(self.worn) do if w.location == location then return w.item end end
         return nil
@@ -286,7 +294,15 @@ function Stubs.desc(worn)
 end
 
 --- IsoSurvivor.new builds a preview character sharing the desc's worn list.
-IsoSurvivor = { new = function(desc) local p = Stubs.player(desc.worn); p.resets = 0; function p:resetModelNextFrame() self.resets = self.resets + 1 end; return p end }
+Stubs.survivorsBuilt = 0
+IsoSurvivor = { new = function(desc)
+    local p = Stubs.player(desc.worn)
+    p.resets = 0
+    Stubs.survivorsBuilt = Stubs.survivorsBuilt + 1
+    function p:resetModelNextFrame() self.resets = self.resets + 1 end
+    function p:getVisual() return { copyFrom = function(_, v) p.copiedLook = v end } end
+    return p
+end }
 
 --- Fake CharacterCreationMain and MainScreen.
 CharacterCreationMain = Element:derive("CharacterCreationMain")

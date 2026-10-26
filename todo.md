@@ -6,3 +6,4 @@
 - Icons in the bag dialog rows (script items expose getIcon).
 - Sandbox option to disable the panel or the "remember last selection" file.
 - Controller / joypad navigation for the new rows.
+- Show hand items on the preview without firing equip events (attach to a hand model slot?).

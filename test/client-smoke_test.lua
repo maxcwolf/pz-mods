@@ -104,16 +104,24 @@ test("choices update the selection, the bag summary and the saved file", functio
     dialog:changed()
 end)
 
-test("the preview renders the chosen gear on a fresh avatar", function()
+test("the preview renders attached gear and only rebuilds when something changed", function()
     local screen = Stubs.screen(worn({ "Base.Belt2", "Belt" }, { "Base.Bag_ALICEpack", "Back" }))
+    CSG_Preview.key = nil
     local panel = panelOf(screen)
     local model = screen.avatarPanel.avatarPanel
     local avatar = model.lastCharacter
     eq(avatar ~= nil, true, "live character shown once the catalog is ready and gear is chosen")
     eq(avatar, CSG_Preview.avatar)
     eq(#avatar.attachedRaw, 3, "three attached items on the preview")
-    eq(avatar.primary:getFullType(), "Base.Crowbar")
-    eq(avatar.resets, 1)
+    eq(avatar.primary, nil, "hand items are not equipped on the preview")
+    eq(avatar.copiedLook ~= nil, true, "look copied from the desc")
+    local built = Stubs.survivorsBuilt
+    for _ = 1, 50 do screen.avatarPanel:setSurvivorDesc(MainScreen.instance.desc) end
+    eq(Stubs.survivorsBuilt, built, "mouse-move re-renders reuse the cached character")
+    eq(model.lastCharacter, avatar)
+    MainScreen.instance.desc.look.hair = "Mohawk"
+    screen.avatarPanel:setSurvivorDesc(MainScreen.instance.desc)
+    eq(Stubs.survivorsBuilt, built + 1, "a hair change rebuilds the preview")
     local c = combos(panel)
     c.Back:pick(nil)
     eq(#model.lastCharacter.attachedRaw, 2, "clearing a slot updates the preview")

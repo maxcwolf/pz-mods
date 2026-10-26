@@ -1,40 +1,47 @@
 --- Shows the chosen gear on the character preview. The vanilla screen renders
 --- the SurvivorDesc directly, which only knows about clothing; to show attached
---- and held items the preview character is synced from the desc and rendered
---- as a live character instead.
+--- items a preview character is built from the desc and rendered as a live
+--- character instead. The vanilla screen re-renders on every mouse move, so
+--- the character is only rebuilt when the look, clothing or gear changed.
 require "ChooseStartingGear/state"
 
 CSG_Preview = CSG_Preview or {}
 local Preview = CSG_Preview
 Preview.enabled = true
+Preview.avatar = nil
+Preview.key = nil
 
---- Gives the preview character one item and returns it.
-local function giveItem(avatar, fullType)
-    return avatar:getInventory():AddItem(fullType)
+--- Returns a string that changes whenever the desc's look changes.
+local function lookKey(desc)
+    local visual = desc:getHumanVisual()
+    return table.concat({
+        tostring(desc:isFemale()),
+        tostring(visual:getHairModel()),
+        tostring(visual:getBeardModel()),
+        tostring(visual:getSkinTextureIndex()),
+        tostring(visual:getBodyHairIndex()),
+        tostring(visual:getHairColor()),
+        tostring(visual:getBeardColor()),
+        tostring(visual:getSkinColor()),
+    }, "|")
 end
 
---- Builds a fresh preview character from the desc (which copies its look and
---- clothing) and attaches the chosen gear to it.
-local function sync(desc, selection)
+--- Returns the cache key for the current desc and selection.
+local function previewKey(desc, selection)
+    return lookKey(desc) .. "#" .. CSG_Runtime.wornSignature(desc) .. "#" .. CSG_Selection.serialize(selection)
+end
+
+--- Builds a fresh preview character from the desc (which copies its clothing),
+--- copies the look onto it and attaches the chosen gear. Hand items are not
+--- shown: equipping them fires game events that assume a real, in-world player.
+local function build(desc, selection)
     local avatar = IsoSurvivor.new(desc, nil, 0, 0, 0)
+    avatar:getVisual():copyFrom(desc:getHumanVisual())
     local plan = CSG_Plan.build(selection, CSG_Runtime.facts(desc))
     for _, op in ipairs(plan.attachments) do
-        local item = giveItem(avatar, op.fullType)
+        local item = avatar:getInventory():AddItem(op.fullType)
         if item then
             avatar:setAttachedItem(op.model, item)
-        end
-    end
-    for _, op in ipairs(plan.hands) do
-        local item = giveItem(avatar, op.fullType)
-        if item then
-            if op.hand == "primary" then
-                avatar:setPrimaryHandItem(item)
-                if op.twoHanded then
-                    avatar:setSecondaryHandItem(item)
-                end
-            else
-                avatar:setSecondaryHandItem(item)
-            end
         end
     end
     avatar:resetModelNextFrame()
@@ -49,16 +56,26 @@ function Preview.apply(avatarPanel, desc)
     end
     local model = avatarPanel and avatarPanel.avatarPanel
     if not model or not MainScreen.instance or CSG_Selection.isEmpty(CSG_State.selection) then
+        Preview.key = nil
         return false
     end
-    local ok, avatar = pcall(sync, desc, CSG_State.selection)
-    if not ok or not avatar then
+    local ok, key = pcall(previewKey, desc, CSG_State.selection)
+    if not ok then
         Preview.enabled = false
-        print("[ChooseStartingGear] gear preview disabled: " .. tostring(avatar))
+        print("[ChooseStartingGear] gear preview disabled: " .. tostring(key))
         return false
     end
-    Preview.avatar = avatar
-    model:setCharacter(avatar)
+    if key ~= Preview.key or not Preview.avatar then
+        local built, avatar = pcall(build, desc, CSG_State.selection)
+        if not built or not avatar then
+            Preview.enabled = false
+            print("[ChooseStartingGear] gear preview disabled: " .. tostring(avatar))
+            return false
+        end
+        Preview.avatar = avatar
+        Preview.key = key
+    end
+    model:setCharacter(Preview.avatar)
     return true
 end
 

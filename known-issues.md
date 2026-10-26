@@ -13,6 +13,14 @@
 - The gear preview switches the avatar from desc rendering to a live
   `IsoSurvivor`; if that throws, the mod logs once and falls back to the
   vanilla preview for the rest of the session.
+- Third run: the preview equipped hand items on the preview character, which
+  fires the game's equip events; the vanilla fishing handler then failed on a
+  character that has no world, and because the vanilla screen re-renders the
+  preview on every mouse move the error repeated until the game stalled. The
+  preview no longer equips hand items and rebuilds the character only when
+  the look, clothing or gear actually changed.
+- Hand items are not shown on the preview (see above); they are still given
+  at spawn.
 - Multiplayer: starting gear is applied from `OnCreatePlayer` on a client when
   the character has zero hours survived. Untested; item sync on a server may
   need `sendAddItemToContainer`-style calls.
