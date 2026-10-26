@@ -65,6 +65,21 @@ function Element:setScrollHeight(h) self.scrollHeight = h end
 function Element:update() end
 function Element:setTooltip(t) self.tooltip = t end
 function Element:onMouseDownOutside() end
+function Element:drawRect() end
+function Element:drawRectBorder() end
+function Element:drawText() end
+function Element:getYScroll() return 0 end
+function Element:setFont() end
+function Element:setOnlyNumbers() end
+function Element:setResizable() end
+function Element:setTitle(t) self.title = t end
+function Element:titleBarHeight() return 16 end
+function Element:clear() self.options = {}; self.items = {} end
+function getCore() return { getScreenWidth = function() return 1920 end, getScreenHeight = function() return 1080 end } end
+
+ISCollapsableWindow = Element:derive("ISCollapsableWindow")
+CharacterCreationAvatar = Element:derive("CharacterCreationAvatar")
+function CharacterCreationAvatar:setSurvivorDesc(desc) self.avatarPanel:setSurvivorDesc(desc) end
 
 ISPanel = Element:derive("ISPanel")
 ISRect = Element:derive("ISRect")
@@ -111,9 +126,11 @@ function ISTextEntryBox:onTextChange() end
 ISScrollingListBox = Element:derive("ISScrollingListBox")
 function ISScrollingListBox:new(x, y, w, h) local o = Element.new(self, x, y, w, h); o.items = {}; return o end
 function ISScrollingListBox:clear() self.items = {} end
-function ISScrollingListBox:addItem(text, item) table.insert(self.items, { text = text, item = item }) end
+function ISScrollingListBox:addItem(text, item) table.insert(self.items, { text = text, item = item, index = #self.items + 1, height = 18 }) end
 function ISScrollingListBox:setOnMouseDownFunction(target, fn) self.target = target; self.onmousedown = fn end
-function ISScrollingListBox:clickRow(i) self.onmousedown(self.target, self.items[i].item) end
+function ISScrollingListBox:setOnMouseDoubleClick(target, fn) self.target = target; self.ondblclick = fn end
+function ISScrollingListBox:clickRow(i) self.selected = i; if self.onmousedown then self.onmousedown(self.target, self.items[i].item) end end
+function ISScrollingListBox:doubleClickRow(i) self.selected = i; self.ondblclick(self.target, self.items[i].item) end
 
 --- Vanilla-shaped hotbar slot definitions plus a modded sling slot.
 ISHotbarAttachDefinition = {
@@ -128,12 +145,12 @@ ISHotbarAttachDefinition.replacements = {
 
 --- Script item and inventory item stubs.
 local SCRIPT_ITEMS = {
-    { fullType = "Base.Wrench", name = "Wrench", attachmentType = "Wrench", weight = 1, weapon = true },
-    { fullType = "Base.Machete", name = "Machete", attachmentType = "Knife", weight = 2, weapon = true },
-    { fullType = "Base.Crowbar", name = "Crowbar", attachmentType = "Crowbar", weight = 2, weapon = true },
-    { fullType = "Base.AssaultRifle", name = "M16", attachmentType = "Rifle", weight = 4, weapon = true, twoHanded = true },
-    { fullType = "Base.Pop", name = "Pop", weight = 0.3 },
-    { fullType = "Base.WaterBottleFull", name = "Water Bottle", weight = 0.8 },
+    { fullType = "Base.Wrench", name = "Wrench", attachmentType = "Wrench", weight = 1, weapon = true, category = "Weapon" },
+    { fullType = "Base.Machete", name = "Machete", attachmentType = "Knife", weight = 2, weapon = true, category = "Weapon" },
+    { fullType = "Base.Crowbar", name = "Crowbar", attachmentType = "Crowbar", weight = 2, weapon = true, category = "Weapon" },
+    { fullType = "Base.AssaultRifle", name = "M16", attachmentType = "Rifle", weight = 4, weapon = true, twoHanded = true, category = "Weapon" },
+    { fullType = "Base.Pop", name = "Pop", weight = 0.3, category = "Food" },
+    { fullType = "Base.WaterBottleFull", name = "Water Bottle", weight = 0.8, category = "Food" },
     { fullType = "Base.Bag_ALICEpack", name = "ALICE Pack", weight = 1, container = true, capacity = 27, provided = {}, replacement = "Bag" },
     { fullType = "Base.Bag_Satchel", name = "Satchel", weight = 1, container = true, capacity = 12, provided = {} },
     { fullType = "Base.Belt2", name = "Belt", weight = 0.5, provided = { "SmallBeltLeft", "SmallBeltRight" } },
@@ -148,6 +165,7 @@ local function scriptStub(def)
         isHidden = function() return def.hidden == true end,
         getObsolete = function() return false end,
         getActualWeight = function() return def.weight or 0 end,
+        getDisplayCategory = function() return def.category end,
     }
 end
 local scriptByType = {}
@@ -184,7 +202,7 @@ function Stubs.wornItems(list)
         getItemByIndex = function(_, i) return list[i + 1].item end,
         get = function(_, i)
             local w = list[i + 1]
-            return { getLocation = function() return { getId = function() return { getTranslationName = function() return w.location end } end } end }
+            return { getLocation = function() return w.location end }
         end,
     }
 end
@@ -253,7 +271,17 @@ function Stubs.screen(worn)
     screen.clothingCombo = {}
     screen.yOffset = 200
     screen.labelRight = 100
-    MainScreen = { instance = { desc = { getWornItems = function() return Stubs.wornItems(worn) end } } }
+    screen.avatarPanel = CharacterCreationAvatar:new(0, 0, 128, 260)
+    screen.avatarPanel.avatarPanel = { setSurvivorDesc = function(m, d) m.lastDesc = d; m.lastCharacter = nil end, setCharacter = function(m, c) m.lastCharacter = c end }
+    local desc = { getWornItems = function() return Stubs.wornItems(worn) end, isFemale = function() return false end, getHumanVisual = function() return "visual" end }
+    local avatar = Stubs.player(worn)
+    avatar.copiedVisual = nil
+    function avatar:getHumanVisual() return { copyFrom = function(_, v) avatar.copiedVisual = v end } end
+    function avatar:setFemale() end
+    function avatar:setWornItems(w) self.wornSet = w end
+    function avatar:clearAttachedItems() self.attachedRaw = {} end
+    function avatar:resetModelNextFrame() self.resets = (self.resets or 0) + 1 end
+    MainScreen = { instance = { desc = desc, avatar = avatar } }
     return screen
 end
 

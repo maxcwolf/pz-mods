@@ -52,6 +52,7 @@ function Catalog.buildEntries(rawItems)
                 capacity = raw.capacity or 0,
                 twoHanded = raw.twoHanded == true,
                 isWeapon = raw.isWeapon == true,
+                category = raw.category or "Unknown",
             })
         end
     end
@@ -65,23 +66,26 @@ function Catalog.buildEntries(rawItems)
     return Catalog.sortByName(entries)
 end
 
---- Returns the entries whose label or full type contains every word of the query.
-function Catalog.filter(entries, query)
+--- Returns the entries whose label or full type contains every word of the
+--- query and, when a category is given, whose category matches it.
+function Catalog.filter(entries, query, category)
     local words = {}
     for word in string.gmatch(string.lower(query or ""), "%S+") do
         table.insert(words, word)
     end
-    if #words == 0 then
+    if #words == 0 and not category then
         return entries
     end
     local matches = {}
     for _, entry in ipairs(entries) do
-        local haystack = string.lower((entry.label or "") .. " " .. (entry.fullType or ""))
-        local ok = true
-        for _, word in ipairs(words) do
-            if not string.find(haystack, word, 1, true) then
-                ok = false
-                break
+        local ok = category == nil or entry.category == category
+        if ok and #words > 0 then
+            local haystack = string.lower((entry.label or "") .. " " .. (entry.fullType or ""))
+            for _, word in ipairs(words) do
+                if not string.find(haystack, word, 1, true) then
+                    ok = false
+                    break
+                end
             end
         end
         if ok then
@@ -89,6 +93,21 @@ function Catalog.filter(entries, query)
         end
     end
     return matches
+end
+
+--- Returns the sorted list of distinct categories in the entries.
+function Catalog.categories(entries)
+    local seen = {}
+    local list = {}
+    for _, entry in ipairs(entries) do
+        local category = entry.category or "Unknown"
+        if not seen[category] then
+            seen[category] = true
+            table.insert(list, category)
+        end
+    end
+    table.sort(list)
+    return list
 end
 
 --- Indexes entries by full type for constant-time lookup.

@@ -1,7 +1,9 @@
 --- Wires the gear panel into the vanilla character creation screen.
 require "OptionScreens/CharacterCreationMain"
+require "OptionScreens/CharacterCreationAvatar"
 require "ChooseStartingGear/GearPanel"
 require "ChooseStartingGear/spawn"
+require "ChooseStartingGear/preview"
 
 CSG_Hooks = CSG_Hooks or {}
 
@@ -45,4 +47,13 @@ function CharacterCreationMain:onOptionMouseDown(button, x, y)
         CSG_State.markPending()
     end
     return originalOption(self, button, x, y)
+end
+
+local originalSetDesc = CharacterCreationAvatar.setSurvivorDesc
+--- Renders the chosen gear on the preview; falls back to the vanilla preview
+--- when nothing is chosen or the live-character path fails.
+function CharacterCreationAvatar:setSurvivorDesc(desc)
+    if not CSG_Preview.apply(self, desc) then
+        originalSetDesc(self, desc)
+    end
 end

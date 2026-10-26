@@ -52,7 +52,13 @@ test("panel loads, builds catalog and lists slots for worn belt and sling", func
     eq(screen.clothingPanel.scrollHeight > 200, true, "scroll height extended")
 end)
 
-test("choices update the selection, the bag rows and the saved file", function()
+local function buttonsTitled(panel, title)
+    local out = {}
+    for _, w in ipairs(panel.widgets) do if w.title == title then table.insert(out, w) end end
+    return out
+end
+
+test("choices update the selection, the bag summary and the saved file", function()
     local screen = Stubs.screen(worn({ "Base.Belt2", "Belt" }, { "Base.Bag_ALICEpack", "Back" }))
     local panel = panelOf(screen)
     local c = combos(panel)
@@ -60,25 +66,62 @@ test("choices update the selection, the bag rows and the saved file", function()
     c.SmallBeltRight:pick("Base.Machete")
     c.Back:pick("Base.AssaultRifle")
     c.primary:pick("Base.Crowbar")
-    local key = "Base.Bag_ALICEpack#1"
-    panel:onContainerAdd("Base.Pop", key)
-    panel:onContainerAdd("Base.Pop", key)
-    panel:onContainerAdd("Base.WaterBottleFull", key)
     eq(CSG_State.selection.attachments.SmallBeltLeft, "Base.Wrench")
-    eq(CSG_Selection.containerItems(CSG_State.selection, key)[1].count, 2)
-    eq(has(labels(panel), "ALICE Pack - Back   (UI_CSG_Weight 1.4 / 27)"), true, "weight updates")
-    eq(has(labels(panel), "2x Pop"), true)
-    -- the search box lists matches and picking one adds it
-    local search
-    for _, w in ipairs(panel.widgets) do if w.entry then search = w end end
-    search.entry:type("wat")
-    eq(#search.list.items, 1)
-    search.list:clickRow(1)
-    eq(CSG_Selection.containerItems(CSG_State.selection, key)[2].count, 2, "water bottle added via search")
     eq(Stubs.files["ChooseStartingGear_last.txt"] ~= nil, true, "selection saved")
-    -- minus / remove buttons
-    for _, w in ipairs(panel.widgets) do if w.title == "-" and w.arg1.fullType == "Base.Pop" then w:click(); break end end
-    eq(CSG_Selection.containerItems(CSG_State.selection, key)[1].count, 1)
+    -- the edit button opens the dialog on this bag
+    local key = "Base.Bag_ALICEpack#1"
+    buttonsTitled(panel, "UI_CSG_EditContents")[1]:click()
+    local dialog = CSG_BagContentsDialog.instance
+    eq(dialog ~= nil, true, "dialog created")
+    eq(dialog.bagKey, key)
+    eq(#dialog.catalogList.items, 10, "catalog lists everything with no filter")
+    dialog.categoryCombo:selectData("Food")
+    dialog:onFilterChanged()
+    eq(#dialog.catalogList.items, 2, "category filter")
+    dialog.searchEntry:type("wat")
+    eq(#dialog.catalogList.items, 1, "search within category")
+    dialog.qtyEntry:setText("2")
+    dialog.catalogList:doubleClickRow(1)
+    eq(CSG_Selection.containerItems(CSG_State.selection, key)[1].count, 2, "double-click adds the quantity")
+    dialog.searchEntry:type("")
+    dialog.catalogList.selected = 1
+    dialog:onAddClicked()
+    eq(#CSG_Selection.containerItems(CSG_State.selection, key), 2, "add button adds the highlighted row")
+    eq(#dialog.contentsList.items, 2)
+    dialog.contentsList.selected = 1
+    dialog:onAdjustClicked(nil, -1)
+    eq(CSG_Selection.containerItems(CSG_State.selection, key)[1].count, 1, "-1 adjusts")
+    eq(dialog.weightLabel.name, "UI_CSG_Weight 1.4 / 27", "weight label")
+    eq(has(labels(panel), "ALICE Pack - Back   (UI_CSG_Weight 1.4 / 27)"), true, "panel header follows the dialog")
+    eq(has(labels(panel), "1x Water Bottle, 2x Pop"), true, "panel summary")
+    dialog.contentsList.selected = 2
+    dialog:onRemoveClicked()
+    eq(#CSG_Selection.containerItems(CSG_State.selection, key), 1)
+    dialog:onEmptyClicked()
+    eq(#CSG_Selection.containerItems(CSG_State.selection, key), 0)
+    CSG_Selection.addToContainer(CSG_State.selection, key, "Base.Pop", 1)
+    CSG_Selection.addToContainer(CSG_State.selection, key, "Base.WaterBottleFull", 2)
+    dialog:changed()
+end)
+
+test("the preview renders the chosen gear on the avatar", function()
+    local screen = Stubs.screen(worn({ "Base.Belt2", "Belt" }, { "Base.Bag_ALICEpack", "Back" }))
+    local panel = panelOf(screen)
+    local model = screen.avatarPanel.avatarPanel
+    local avatar = MainScreen.instance.avatar
+    eq(model.lastCharacter, avatar, "live character shown once the catalog is ready and gear is chosen")
+    eq(#avatar.attachedRaw, 3, "three attached items on the preview")
+    eq(avatar.primary:getFullType(), "Base.Crowbar")
+    eq(avatar.wornSet ~= nil, true, "worn items copied from the desc")
+    eq(avatar.copiedVisual, "visual")
+    local c = combos(panel)
+    c.Back:pick(nil)
+    eq(#avatar.attachedRaw, 2, "clearing a slot updates the preview")
+    panel:onClearAll()
+    screen.avatarPanel:setSurvivorDesc(MainScreen.instance.desc)
+    eq(model.lastCharacter, nil, "vanilla desc preview when nothing is chosen")
+    eq(model.lastDesc, MainScreen.instance.desc)
+    CSG_State.selection = CSG_Selection.deserialize("attach\tSmallBeltLeft\tBase.Wrench\nattach\tSmallBeltRight\tBase.Machete\nattach\tBack\tBase.AssaultRifle\nhand\tprimary\tBase.Crowbar\ncontainer\tBase.Bag_ALICEpack#1\tBase.Pop\t1\ncontainer\tBase.Bag_ALICEpack#1\tBase.WaterBottleFull\t2")
 end)
 
 test("pressing play then spawning applies gear through the hotbar", function()

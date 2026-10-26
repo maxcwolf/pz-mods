@@ -83,9 +83,17 @@ function Selection.containerWeight(sel, key, weightOf)
     return total
 end
 
+--- Returns true when a table has no keys (the game's Lua has no `next`).
+local function hasAny(t)
+    for _ in pairs(t) do
+        return true
+    end
+    return false
+end
+
 --- Returns true when nothing at all has been chosen.
 function Selection.isEmpty(sel)
-    if next(sel.hands) or next(sel.attachments) then
+    if hasAny(sel.hands) or hasAny(sel.attachments) then
         return false
     end
     for _, stacks in pairs(sel.containers) do

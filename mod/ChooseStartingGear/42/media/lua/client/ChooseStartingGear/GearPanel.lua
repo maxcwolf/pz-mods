@@ -7,7 +7,8 @@ require "ISUI/ISButton"
 require "ISUI/ISComboBox"
 require "ISUI/ISRect"
 require "ChooseStartingGear/state"
-require "ChooseStartingGear/ItemSearch"
+require "ChooseStartingGear/BagContentsDialog"
+require "ChooseStartingGear/preview"
 
 local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.Small)
 local FONT_HGT_MEDIUM = getTextManager():getFontHeight(UIFont.Medium)
@@ -51,9 +52,6 @@ end
 --- Removes every widget the last rebuild created.
 function CSG_GearPanel:clearWidgets()
     for _, widget in ipairs(self.widgets) do
-        if widget.hideList then
-            widget:hideList()
-        end
         self:removeChild(widget)
     end
     self.widgets = {}
@@ -79,6 +77,9 @@ function CSG_GearPanel:refreshIfNeeded(force)
     if force or signature ~= self.signature then
         self.signature = signature
         self:rebuild()
+        if CSG_State.catalogReady() then
+            CSG_Preview.refresh(self.screen)
+        end
     end
 end
 
@@ -162,11 +163,30 @@ function CSG_GearPanel:addCombo(y, labelText, entries, selectedType, onChange, a
     return y + BUTTON_HGT + UI_BORDER_SPACING
 end
 
---- Adds the rows for one worn container: a header with its weight, a row per
---- chosen stack with + and - buttons, and a search box; returns the next y.
+--- Returns a one-line summary of what is in a container, trimmed to a width.
+function CSG_GearPanel:contentsSummary(key, maxWidth)
+    local parts = {}
+    for _, stack in ipairs(CSG_Selection.containerItems(CSG_State.selection, key)) do
+        local entry = CSG_State.entry(stack.fullType)
+        table.insert(parts, tostring(stack.count) .. "x " .. (entry and entry.label or stack.fullType))
+    end
+    if #parts == 0 then
+        return getText("UI_CSG_EmptyBagSummary")
+    end
+    local text = table.concat(parts, ", ")
+    while #text > 4 and getTextManager():MeasureStringX(UIFont.Small, text .. "...") > maxWidth do
+        text = string.sub(text, 1, #text - 4)
+    end
+    if #text < #table.concat(parts, ", ") then
+        text = text .. "..."
+    end
+    return text
+end
+
+--- Adds the rows for one worn container: a header with its weight, an edit
+--- button, and a summary of what is inside; returns the next y.
 function CSG_GearPanel:addContainer(y, container)
-    local selection = CSG_State.selection
-    local weight = CSG_Selection.containerWeight(selection, container.key, CSG_State.weightOf)
+    local weight = CSG_Selection.containerWeight(CSG_State.selection, container.key, CSG_State.weightOf)
     local title = container.name
     if container.locationName then
         title = title .. " - " .. container.locationName
@@ -178,19 +198,10 @@ function CSG_GearPanel:addContainer(y, container)
     end
     y = y + BUTTON_HGT + 2
 
-    for _, stack in ipairs(CSG_Selection.containerItems(selection, container.key)) do
-        local entry = CSG_State.entry(stack.fullType)
-        local ref = { key = container.key, fullType = stack.fullType }
-        local minus = self:addButton(INDENT, y, "-", CSG_GearPanel.onContainerMinus, ref)
-        local plus = self:addButton(minus:getRight() + 2, y, "+", CSG_GearPanel.onContainerPlus, ref)
-        local remove = self:addButton(plus:getRight() + 2, y, getText("UI_CSG_Remove"), CSG_GearPanel.onContainerRemove, ref)
-        self:addLabel(remove:getRight() + UI_BORDER_SPACING, y, tostring(stack.count) .. "x " .. (entry and entry.label or stack.fullType))
-        y = y + BUTTON_HGT + 2
-    end
-
-    local search = self:track(CSG_ItemSearch:new(INDENT, y, self:comboWidth(INDENT), CSG_State.entries, self, CSG_GearPanel.onContainerAdd, container.key))
-    search:initialise()
-    search.entry:setTooltip(getText("UI_CSG_AddItem"))
+    local edit = self:addButton(INDENT, y, getText("UI_CSG_EditContents"), CSG_GearPanel.onEditContents, container.key)
+    local summaryX = edit:getRight() + UI_BORDER_SPACING
+    local summary = self:addLabel(summaryX, y, self:contentsSummary(container.key, self.width - summaryX))
+    summary.r, summary.g, summary.b = 0.8, 0.8, 0.8
     return y + BUTTON_HGT + UI_BORDER_SPACING
 end
 
@@ -239,6 +250,10 @@ function CSG_GearPanel:rebuild()
     for _, container in ipairs(facts.containers) do
         y = self:addContainer(y, container)
     end
+    local dialog = CSG_BagContentsDialog.instance
+    if dialog and dialog:getIsVisible() then
+        dialog:setBags(facts.containers, dialog.bagKey)
+    end
 
     self:setHeight(y + UI_BORDER_SPACING)
     self:updateParentScroll()
@@ -248,45 +263,24 @@ end
 function CSG_GearPanel:onHandChanged(combo, hand)
     CSG_Selection.setHand(CSG_State.selection, hand, combo:getOptionData(combo.selected))
     CSG_State.save()
+    CSG_Preview.refresh(self.screen)
 end
 
 --- Stores an attachment-slot choice.
 function CSG_GearPanel:onAttachmentChanged(combo, slotType)
     CSG_Selection.setAttachment(CSG_State.selection, slotType, combo:getOptionData(combo.selected))
     CSG_State.save()
+    CSG_Preview.refresh(self.screen)
 end
 
---- Adds one of the picked item to a container and redraws.
-function CSG_GearPanel:onContainerAdd(fullType, key)
-    CSG_Selection.addToContainer(CSG_State.selection, key, fullType, 1)
-    CSG_State.save()
-    self:rebuild()
+--- Opens the bag contents dialog for one container.
+function CSG_GearPanel:onEditContents(button, key)
+    local facts = CSG_Runtime.facts(self:desc())
+    CSG_BagContentsDialog.open(facts.containers, key, self, CSG_GearPanel.onContentsChanged)
 end
 
---- Adds one more of a stack.
-function CSG_GearPanel:onContainerPlus(button, ref)
-    CSG_Selection.addToContainer(CSG_State.selection, ref.key, ref.fullType, 1)
-    CSG_State.save()
-    self:rebuild()
-end
-
---- Takes one away from a stack.
-function CSG_GearPanel:onContainerMinus(button, ref)
-    CSG_Selection.removeFromContainer(CSG_State.selection, ref.key, ref.fullType, 1)
-    CSG_State.save()
-    self:rebuild()
-end
-
---- Removes a whole stack.
-function CSG_GearPanel:onContainerRemove(button, ref)
-    local stacks = CSG_Selection.containerItems(CSG_State.selection, ref.key)
-    for _, stack in ipairs(stacks) do
-        if stack.fullType == ref.fullType then
-            CSG_Selection.removeFromContainer(CSG_State.selection, ref.key, ref.fullType, stack.count)
-            break
-        end
-    end
-    CSG_State.save()
+--- Redraws after the dialog changed a bag.
+function CSG_GearPanel:onContentsChanged()
     self:rebuild()
 end
 
@@ -294,4 +288,5 @@ end
 function CSG_GearPanel:onClearAll()
     CSG_State.reset()
     self:rebuild()
+    CSG_Preview.refresh(self.screen)
 end

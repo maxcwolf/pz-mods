@@ -46,3 +46,18 @@ test("byFullType indexes entries", function()
     local map = C.byFullType(C.buildEntries({ { fullType = "Base.Pop", displayName = "Pop" } }))
     eq(map["Base.Pop"].displayName, "Pop")
 end)
+
+test("filter by category and categories list", function()
+    local entries = C.buildEntries({
+        { fullType = "Base.Pop", displayName = "Pop", category = "Food" },
+        { fullType = "Base.Axe", displayName = "Axe", category = "Weapon" },
+        { fullType = "Base.Rope", displayName = "Rope" },
+    })
+    eq(#C.filter(entries, "", "Food"), 1)
+    eq(#C.filter(entries, "pop", "Weapon"), 0)
+    eq(#C.filter(entries, nil, nil), 3)
+    local cats = C.categories(entries)
+    eq(#cats, 3)
+    eq(cats[1], "Food")
+    eq(cats[3], "Weapon")
+end)

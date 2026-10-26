@@ -30,34 +30,23 @@ function Runtime.wornItems(owner)
     for i = 0, worn:size() - 1 do
         local item = worn:getItemByIndex(i)
         if item then
-            local ok, wornItem = pcall(function() return worn:get(i) end)
-            local location = nil
-            if ok and wornItem then
-                local ok2, loc = pcall(function() return wornItem:getLocation() end)
-                if ok2 then location = loc end
-            end
-            table.insert(out, { item = item, location = location })
+            local wornItem = worn:get(i)
+            table.insert(out, { item = item, location = wornItem and wornItem:getLocation() or nil })
         end
     end
     return out
 end
 
---- Returns the translated name of a body location object, or nil.
+--- Returns the translated name of a worn-item location. Build 42 hands Lua a
+--- plain string here; anything else is shown as-is, and no Java call is probed
+--- because the game logs errors even when pcall catches them.
 function Runtime.locationName(location)
-    if not location then
+    if location == nil then
         return nil
     end
-    local ok, name = pcall(function()
-        local id = location
-        local okId, resolved = pcall(function() return location:getId() end)
-        if okId and resolved then id = resolved end
-        local translationName = id:getTranslationName()
-        return getTextOrNull("UI_ClothingType_" .. tostring(translationName)) or tostring(translationName)
-    end)
-    if ok then
-        return name
-    end
-    return nil
+    local name = tostring(location)
+    local short = string.match(name, "[:/]([^:/]+)$") or name
+    return getTextOrNull("UI_ClothingType_" .. name) or getTextOrNull("UI_ClothingType_" .. short) or short
 end
 
 --- Lists the hotbar slot types each worn item provides, in wear order.
@@ -135,6 +124,7 @@ function Runtime.rawItem(script)
         hidden = script:isHidden(),
         obsolete = script:getObsolete(),
         weight = script:getActualWeight(),
+        category = script:getDisplayCategory(),
     }
     if CSG_Catalog.isExcluded(raw) then
         return raw
