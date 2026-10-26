@@ -3,6 +3,8 @@
 Pick your starting gear on the normal character creation screen, right under
 the clothing choices:
 
+- **Bags**: one chooser per body location that any wearable container uses
+  (Back, fanny packs, and whatever satchel or rig locations your mods add).
 - **Hands**: what you hold in your primary and secondary hand.
 - **Attached items**: one item per hotbar attachment slot your clothing
   provides. The Back slot is always there; a belt adds Belt Left and Belt
@@ -17,10 +19,6 @@ the clothing choices:
 The mod reads the same tables the in-game hotbar uses, so it works with other
 mods' slots and items without any per-mod configuration. Your last selection
 is remembered between games.
-
-Bags only show up here if the character creation screen lets you wear them,
-which needs the sandbox option **All clothes unlocked** (or a mod that adds bag
-choices to that screen).
 
 ## Install
 
@@ -73,8 +71,9 @@ Install LuaJIT with `brew install luajit`.
    non-hidden item once, a few hundred per frame, to build a catalog. The panel
    shows a progress line until that finishes.
 3. The vanilla preview renders the `SurvivorDesc`, which only knows clothing.
-   When gear is chosen the mod instead copies the desc onto the preview
-   `IsoSurvivor`, attaches the chosen items to it, and renders that character.
+   When gear is chosen the mod builds a fresh `IsoSurvivor` from the desc
+   (which copies look and clothing), attaches the chosen items to it, and
+   renders that character.
 4. Pressing Play saves the selection to `~/Zomboid/Lua/ChooseStartingGear_last.txt`
    and arms the spawn hook. On `OnNewGame` the plan is built against the real
    player, items are added, bags are filled and hotbar attachments are made

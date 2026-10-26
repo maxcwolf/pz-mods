@@ -61,3 +61,18 @@ test("filter by category and categories list", function()
     eq(cats[1], "Food")
     eq(cats[3], "Weapon")
 end)
+
+test("bagLocations groups wearable containers by location", function()
+    local entries = C.buildEntries({
+        { fullType = "Base.Bag_Big", displayName = "Big Bag", isContainer = true, equipLocation = "Back" },
+        { fullType = "Base.Bag_Small", displayName = "Small Bag", isContainer = true, equipLocation = "Back" },
+        { fullType = "Base.Fanny", displayName = "Fanny", isContainer = true, equipLocation = "FannyPackFront" },
+        { fullType = "Base.Box", displayName = "Box", isContainer = true },
+        { fullType = "Base.Axe", displayName = "Axe", equipLocation = "Back" },
+    })
+    local groups = C.bagLocations(entries)
+    eq(#groups, 2)
+    eq(groups[1].location, "Back")
+    eq(#groups[1].entries, 2)
+    eq(groups[2].location, "FannyPackFront")
+end)

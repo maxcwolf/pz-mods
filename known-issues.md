@@ -2,7 +2,14 @@
 
 - First in-game run (2026-10-25) surfaced two bugs, both fixed: the game's
   Lua has no `next()`, and probing Java methods inside pcall still logs errors.
-  The bag dialog and the gear preview have not been run in the game yet.
+  Second run: attachments worked in game; the preview failed because
+  `IsoSurvivor` has no `getHumanVisual` (fixed by rebuilding the preview
+  character from the desc), and bags could not be chosen on the screen (fixed
+  by the new Bags section). The Bags section, the bag dialog and the preview
+  have not been run in the game yet.
+- Bags chosen in the Bags section are worn through the desc like clothing.
+  Whether the game puts them on the spawned player exactly like vanilla
+  clothing is still to be confirmed in a real spawn.
 - The gear preview switches the avatar from desc rendering to a live
   `IsoSurvivor`; if that throws, the mod logs once and falls back to the
   vanilla preview for the rest of the session.

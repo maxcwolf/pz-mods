@@ -229,6 +229,17 @@ function CSG_GearPanel:rebuild()
     local selection = CSG_State.selection
     local facts = CSG_Runtime.facts(self:desc())
 
+    y = self:addSectionTitle(y, getText("UI_CSG_Bags"))
+    local bagGroups = CSG_Catalog.bagLocations(CSG_State.entries)
+    if #bagGroups == 0 then
+        y = self:addHint(y, getText("UI_CSG_NoBagItems"))
+    end
+    for _, group in ipairs(bagGroups) do
+        local worn = self:wornBagType(group.location)
+        local name = getTextOrNull("UI_ClothingType_" .. group.location) or group.location
+        y = self:addCombo(y, name, group.entries, worn, CSG_GearPanel.onBagChanged, group.location)
+    end
+
     y = self:addSectionTitle(y, getText("UI_CSG_Hands"))
     y = self:addCombo(y, getText("UI_CSG_PrimaryHand"), CSG_State.weaponEntries, selection.hands.primary, CSG_GearPanel.onHandChanged, "primary")
     y = self:addCombo(y, getText("UI_CSG_SecondaryHand"), CSG_State.weaponEntries, selection.hands.secondary, CSG_GearPanel.onHandChanged, "secondary")
@@ -257,6 +268,35 @@ function CSG_GearPanel:rebuild()
 
     self:setHeight(y + UI_BORDER_SPACING)
     self:updateParentScroll()
+end
+
+--- Returns the body-location object for a translation-name string.
+local function bodyLocation(location)
+    return ItemBodyLocation.get(ResourceLocation.of(location))
+end
+
+--- Returns the full type of the bag the desc wears at a location, or nil.
+function CSG_GearPanel:wornBagType(location)
+    local item = self:desc():getWornItem(bodyLocation(location))
+    return item and item:getFullType() or nil
+end
+
+--- Wears (or removes) a bag at a body location and tells the screen.
+function CSG_GearPanel:onBagChanged(combo, location)
+    local desc = self:desc()
+    local fullType = combo:getOptionData(combo.selected)
+    desc:setWornItem(bodyLocation(location), nil)
+    if fullType then
+        local item = instanceItem(fullType)
+        if item then
+            desc:setWornItem(bodyLocation(location), item)
+        end
+    end
+    if self.screen.updateSelectedClothingCombo then
+        self.screen:updateSelectedClothingCombo()
+    end
+    self:refreshIfNeeded(true)
+    CSG_Preview.refresh(self.screen)
 end
 
 --- Stores a hand choice.

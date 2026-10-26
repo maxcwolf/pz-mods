@@ -53,6 +53,7 @@ function Catalog.buildEntries(rawItems)
                 twoHanded = raw.twoHanded == true,
                 isWeapon = raw.isWeapon == true,
                 category = raw.category or "Unknown",
+                equipLocation = raw.equipLocation,
             })
         end
     end
@@ -108,6 +109,28 @@ function Catalog.categories(entries)
     end
     table.sort(list)
     return list
+end
+
+--- Groups wearable containers by the body location they are worn on; returns
+--- a list of { location, entries } sorted by location.
+function Catalog.bagLocations(entries)
+    local byLocation = {}
+    local locations = {}
+    for _, entry in ipairs(entries) do
+        if entry.isContainer and entry.equipLocation then
+            if not byLocation[entry.equipLocation] then
+                byLocation[entry.equipLocation] = {}
+                table.insert(locations, entry.equipLocation)
+            end
+            table.insert(byLocation[entry.equipLocation], entry)
+        end
+    end
+    table.sort(locations)
+    local groups = {}
+    for _, location in ipairs(locations) do
+        table.insert(groups, { location = location, entries = byLocation[location] })
+    end
+    return groups
 end
 
 --- Indexes entries by full type for constant-time lookup.

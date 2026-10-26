@@ -13,14 +13,10 @@ local function giveItem(avatar, fullType)
     return avatar:getInventory():AddItem(fullType)
 end
 
---- Copies the desc onto the preview character and attaches the chosen gear.
-local function sync(avatar, desc, selection)
-    avatar:setFemale(desc:isFemale())
-    avatar:getHumanVisual():copyFrom(desc:getHumanVisual())
-    avatar:setWornItems(desc:getWornItems())
-    avatar:clearAttachedItems()
-    avatar:setPrimaryHandItem(nil)
-    avatar:setSecondaryHandItem(nil)
+--- Builds a fresh preview character from the desc (which copies its look and
+--- clothing) and attaches the chosen gear to it.
+local function sync(desc, selection)
+    local avatar = IsoSurvivor.new(desc, nil, 0, 0, 0)
     local plan = CSG_Plan.build(selection, CSG_Runtime.facts(desc))
     for _, op in ipairs(plan.attachments) do
         local item = giveItem(avatar, op.fullType)
@@ -42,6 +38,7 @@ local function sync(avatar, desc, selection)
         end
     end
     avatar:resetModelNextFrame()
+    return avatar
 end
 
 --- Renders the gear on the avatar panel's 3D model; returns false when the
@@ -50,17 +47,17 @@ function Preview.apply(avatarPanel, desc)
     if not Preview.enabled or not desc or not CSG_State.catalogReady() then
         return false
     end
-    local avatar = MainScreen.instance and MainScreen.instance.avatar
     local model = avatarPanel and avatarPanel.avatarPanel
-    if not avatar or not model or CSG_Selection.isEmpty(CSG_State.selection) then
+    if not model or not MainScreen.instance or CSG_Selection.isEmpty(CSG_State.selection) then
         return false
     end
-    local ok, err = pcall(sync, avatar, desc, CSG_State.selection)
-    if not ok then
+    local ok, avatar = pcall(sync, desc, CSG_State.selection)
+    if not ok or not avatar then
         Preview.enabled = false
-        print("[ChooseStartingGear] gear preview disabled: " .. tostring(err))
+        print("[ChooseStartingGear] gear preview disabled: " .. tostring(avatar))
         return false
     end
+    Preview.avatar = avatar
     model:setCharacter(avatar)
     return true
 end

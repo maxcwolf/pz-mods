@@ -135,6 +135,10 @@ function Runtime.rawItem(script)
         if instanceof(inst, "InventoryContainer") then
             raw.isContainer = true
             raw.capacity = inst:getCapacity()
+            local location = inst:canBeEquipped()
+            if location then
+                raw.equipLocation = location:getTranslationName()
+            end
         end
         if instanceof(inst, "HandWeapon") then
             raw.isWeapon = true

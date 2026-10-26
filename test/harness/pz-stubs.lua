@@ -151,8 +151,8 @@ local SCRIPT_ITEMS = {
     { fullType = "Base.AssaultRifle", name = "M16", attachmentType = "Rifle", weight = 4, weapon = true, twoHanded = true, category = "Weapon" },
     { fullType = "Base.Pop", name = "Pop", weight = 0.3, category = "Food" },
     { fullType = "Base.WaterBottleFull", name = "Water Bottle", weight = 0.8, category = "Food" },
-    { fullType = "Base.Bag_ALICEpack", name = "ALICE Pack", weight = 1, container = true, capacity = 27, provided = {}, replacement = "Bag" },
-    { fullType = "Base.Bag_Satchel", name = "Satchel", weight = 1, container = true, capacity = 12, provided = {} },
+    { fullType = "Base.Bag_ALICEpack", name = "ALICE Pack", weight = 1, container = true, capacity = 27, provided = {}, replacement = "Bag", equip = "Back" },
+    { fullType = "Base.Bag_Satchel", name = "Satchel", weight = 1, container = true, capacity = 12, provided = {}, equip = "Satchel" },
     { fullType = "Base.Belt2", name = "Belt", weight = 0.5, provided = { "SmallBeltLeft", "SmallBeltRight" } },
     { fullType = "alice.Sling", name = "Sling", weight = 0.5, provided = { "AliceSling" } },
     { fullType = "Base.Secret", name = "Secret", hidden = true },
@@ -186,6 +186,7 @@ function Stubs.item(fullType)
         getAttachmentsProvided = function() return def.provided and Stubs.javaList(def.provided) or nil end,
         getAttachmentReplacement = function() return def.replacement end,
         getCapacity = function() return def.capacity end,
+        canBeEquipped = function() return def.equip and { getTranslationName = function() return def.equip end } or nil end,
         isTwoHandWeapon = function() return def.twoHanded == true end,
         isRequiresEquippedBothHands = function() return false end,
         getInventory = function() return { AddItem = function(_, t) local i = Stubs.item(t); table.insert(contents, i); return i end } end,
@@ -259,11 +260,40 @@ function Stubs.player(worn)
 end
 function getPlayerHotbar(num) return Stubs.currentPlayer and Stubs.currentPlayer.hotbar end
 
+--- Body-location helpers: locations are plain strings in the stubs.
+ItemBodyLocation = { get = function(x) return x end }
+ResourceLocation = { of = function(x) return x end }
+
+--- Fake SurvivorDesc over a mutable worn list of { item, location }.
+function Stubs.desc(worn)
+    local desc = { worn = worn }
+    function desc:getWornItems() return Stubs.wornItems(self.worn) end
+    function desc:isFemale() return false end
+    function desc:getWornItem(location)
+        for _, w in ipairs(self.worn) do if w.location == location then return w.item end end
+        return nil
+    end
+    function desc:setWornItem(location, item)
+        for i, w in ipairs(self.worn) do
+            if w.location == location then
+                if item then w.item = item else table.remove(self.worn, i) end
+                return
+            end
+        end
+        if item then table.insert(self.worn, { item = item, location = location }) end
+    end
+    return desc
+end
+
+--- IsoSurvivor.new builds a preview character sharing the desc's worn list.
+IsoSurvivor = { new = function(desc) local p = Stubs.player(desc.worn); p.resets = 0; function p:resetModelNextFrame() self.resets = self.resets + 1 end; return p end }
+
 --- Fake CharacterCreationMain and MainScreen.
 CharacterCreationMain = Element:derive("CharacterCreationMain")
 function CharacterCreationMain:arrangeClothingUI() self.arranged = (self.arranged or 0) + 1 end
 function CharacterCreationMain:removeAllClothingWidgets() self.removed = (self.removed or 0) + 1 end
 function CharacterCreationMain:onOptionMouseDown(button) self.lastOption = button.internal end
+function CharacterCreationMain:updateSelectedClothingCombo() self.synced = (self.synced or 0) + 1 end
 function Stubs.screen(worn)
     local screen = CharacterCreationMain:new(0, 0, 800, 600)
     screen.clothingPanel = ISPanel:new(0, 0, 500, 400)
@@ -273,15 +303,7 @@ function Stubs.screen(worn)
     screen.labelRight = 100
     screen.avatarPanel = CharacterCreationAvatar:new(0, 0, 128, 260)
     screen.avatarPanel.avatarPanel = { setSurvivorDesc = function(m, d) m.lastDesc = d; m.lastCharacter = nil end, setCharacter = function(m, c) m.lastCharacter = c end }
-    local desc = { getWornItems = function() return Stubs.wornItems(worn) end, isFemale = function() return false end, getHumanVisual = function() return "visual" end }
-    local avatar = Stubs.player(worn)
-    avatar.copiedVisual = nil
-    function avatar:getHumanVisual() return { copyFrom = function(_, v) avatar.copiedVisual = v end } end
-    function avatar:setFemale() end
-    function avatar:setWornItems(w) self.wornSet = w end
-    function avatar:clearAttachedItems() self.attachedRaw = {} end
-    function avatar:resetModelNextFrame() self.resets = (self.resets or 0) + 1 end
-    MainScreen = { instance = { desc = desc, avatar = avatar } }
+    MainScreen = { instance = { desc = Stubs.desc(worn), avatar = {} } }
     return screen
 end
 
