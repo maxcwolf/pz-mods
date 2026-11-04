@@ -71,9 +71,8 @@ Install LuaJIT with `brew install luajit`.
    non-hidden item once, a few hundred per frame, to build a catalog. The panel
    shows a progress line until that finishes.
 3. The vanilla preview renders the `SurvivorDesc`, which only knows clothing.
-   When gear is chosen the mod builds a fresh `IsoSurvivor` from the desc
-   (which copies look and clothing), attaches the chosen items to it, and
-   renders that character.
+   When gear is chosen the mod renders a hidden `IsoPlayer` instead, kept in
+   sync with the desc's look and worn items plus the chosen attachments.
 4. Pressing Play saves the selection to `~/Zomboid/Lua/ChooseStartingGear_last.txt`
    and arms the spawn hook. On `OnNewGame` the plan is built against the real
    player, items are added, bags are filled and hotbar attachments are made

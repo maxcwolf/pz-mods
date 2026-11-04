@@ -23,12 +23,59 @@ local function attach(player, hotbar, op, item)
     player:setAttachedItem(op.model, item)
 end
 
+--- Returns the worn item types of a desc or player as one printable string.
+local function wornSummary(owner)
+    local parts = {}
+    for _, worn in ipairs(CSG_Runtime.wornItems(owner)) do
+        table.insert(parts, worn.item:getFullType())
+    end
+    return table.concat(parts, ", ")
+end
+
+--- Puts on the player any item the desc wore that the player is missing, so
+--- modded clothing and bags chosen on the screen are there before gear is
+--- attached. Returns how many items were added.
+function Apply.ensureWorn(player, desc)
+    if not desc then
+        return 0
+    end
+    local have = {}
+    for _, worn in ipairs(CSG_Runtime.wornItems(player)) do
+        local fullType = worn.item:getFullType()
+        have[fullType] = (have[fullType] or 0) + 1
+    end
+    local added = 0
+    for _, worn in ipairs(CSG_Runtime.wornItems(desc)) do
+        local fullType = worn.item:getFullType()
+        if (have[fullType] or 0) > 0 then
+            have[fullType] = have[fullType] - 1
+        else
+            local item = player:getInventory():AddItem(fullType)
+            if item then
+                local location = item:IsClothing() and item:getBodyLocation() or item:canBeEquipped()
+                if location then
+                    player:setWornItem(location, item)
+                    added = added + 1
+                    print("[ChooseStartingGear] wore missing " .. fullType)
+                end
+            end
+        end
+    end
+    return added
+end
+
 --- Gives the player everything in the selection and returns the plan, whose
---- `skipped` list names anything that could not be placed.
-function Apply.toPlayer(player, selection)
+--- `skipped` list names anything that could not be placed. `desc` is the
+--- character description the player was created from, when known.
+function Apply.toPlayer(player, selection, desc)
     if not CSG_State.catalogReady() then
         CSG_State.finishCatalog()
     end
+    if desc then
+        print("[ChooseStartingGear] desc wore: " .. wornSummary(desc))
+    end
+    print("[ChooseStartingGear] player wears: " .. wornSummary(player))
+    Apply.ensureWorn(player, desc)
     local facts = CSG_Runtime.facts(player)
     local plan = CSG_Plan.build(selection, facts)
 

@@ -1,14 +1,17 @@
 --- Shows the chosen gear on the character preview. The vanilla screen renders
---- the SurvivorDesc directly, which only knows about clothing; to show attached
---- items a preview character is built from the desc and rendered as a live
---- character instead. The vanilla screen re-renders on every mouse move, so
---- the character is only rebuilt when the look, clothing or gear changed.
+--- the SurvivorDesc directly, which only knows about clothing. The 3D view can
+--- also render a live character, and only IsoPlayer carries both a look and
+--- attached items, so one hidden preview player is created per session (from
+--- a throwaway desc, because the game's own constructor empties the desc it is
+--- given) and kept in sync with the real desc and the selection. The vanilla
+--- screen re-renders on every mouse move, so the sync only runs when the look,
+--- clothing or gear changed.
 require "ChooseStartingGear/state"
 
 CSG_Preview = CSG_Preview or {}
 local Preview = CSG_Preview
 Preview.enabled = true
-Preview.avatar = nil
+Preview.player = nil
 Preview.key = nil
 
 --- Returns a string that changes whenever the desc's look changes.
@@ -31,12 +34,23 @@ local function previewKey(desc, selection)
     return lookKey(desc) .. "#" .. CSG_Runtime.wornSignature(desc) .. "#" .. CSG_Selection.serialize(selection)
 end
 
---- Builds a fresh preview character from the desc (which copies its clothing),
---- copies the look onto it and attaches the chosen gear. Hand items are not
---- shown: equipping them fires game events that assume a real, in-world player.
-local function build(desc, selection)
-    local avatar = IsoSurvivor.new(desc, nil, 0, 0, 0)
-    avatar:getVisual():copyFrom(desc:getHumanVisual())
+--- Creates the hidden preview player once.
+local function player()
+    if not Preview.player then
+        Preview.player = IsoPlayer.new(nil, SurvivorFactory.CreateSurvivor(), 0, 0, 0)
+    end
+    return Preview.player
+end
+
+--- Copies the desc's look and clothing onto the preview player and attaches
+--- the chosen gear. Hand items are not equipped: that fires game events that
+--- assume an in-world player.
+local function sync(desc, selection)
+    local avatar = player()
+    avatar:setFemale(desc:isFemale())
+    avatar:getHumanVisual():copyFrom(desc:getHumanVisual())
+    avatar:setWornItems(desc:getWornItems())
+    avatar:clearAttachedItems()
     local plan = CSG_Plan.build(selection, CSG_Runtime.facts(desc))
     for _, op in ipairs(plan.attachments) do
         local item = avatar:getInventory():AddItem(op.fullType)
@@ -65,17 +79,16 @@ function Preview.apply(avatarPanel, desc)
         print("[ChooseStartingGear] gear preview disabled: " .. tostring(key))
         return false
     end
-    if key ~= Preview.key or not Preview.avatar then
-        local built, avatar = pcall(build, desc, CSG_State.selection)
-        if not built or not avatar then
+    if key ~= Preview.key then
+        local synced, avatar = pcall(sync, desc, CSG_State.selection)
+        if not synced or not avatar then
             Preview.enabled = false
             print("[ChooseStartingGear] gear preview disabled: " .. tostring(avatar))
             return false
         end
-        Preview.avatar = avatar
         Preview.key = key
     end
-    model:setCharacter(Preview.avatar)
+    model:setCharacter(Preview.player)
     return true
 end
 

@@ -21,6 +21,18 @@
   the look, clothing or gear actually changed.
 - Hand items are not shown on the preview (see above); they are still given
   at spawn.
+- Fourth run (2026-11-03): the preview was disabled at once because
+  `IsoSurvivor` has no visual at all (`getVisual` throws "subclasses must
+  implement this"), so it can never be rendered as a live character. The
+  preview now creates one hidden `IsoPlayer` from a throwaway desc (the
+  player constructor empties the desc it is given) and syncs look, worn items
+  and attachments onto it. Its constructor fires `OnCreateLivingCharacter`
+  and registers nothing globally; still unverified in the game.
+- Same run: at spawn, modded clothing and one bag chosen on the screen were
+  not on the player (slings, sheaths, a modded fanny pack), so their gear was
+  skipped. The spawn code now puts on anything the desc wore that the player
+  is missing, logs both lists, and retries skipped gear two seconds later.
+  Root cause of the missing clothing is still unknown.
 - Multiplayer: starting gear is applied from `OnCreatePlayer` on a client when
   the character has zero hours survived. Untested; item sync on a server may
   need `sendAddItemToContainer`-style calls.

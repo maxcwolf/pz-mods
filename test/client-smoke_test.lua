@@ -29,6 +29,12 @@ local function combos(panel)
     return out
 end
 
+local function bagButtons(panel)
+    local out = {}
+    for _, w in ipairs(panel.widgets) do if w.isBagButton then table.insert(out, w) end end
+    return out
+end
+
 local function has(list, value)
     for _, v in ipairs(list) do if v == value then return true end end
     return false
@@ -47,8 +53,10 @@ test("panel loads, builds catalog and lists slots for worn belt and sling", func
     eq(#c.AliceSling.options, 2, "sling lists None + rifle")
     eq(#c.SmallBeltLeft.options, 3, "belt lists None + wrench + machete")
     eq(#c.Back.options, 2, "back with bag: rifle moves to bag model, crowbar blocked")
-    eq(has(labels(panel), "ALICE Pack - Back   (UI_CSG_Weight 0.0 / 27)"), true, "bag header")
-    eq(has(labels(panel), "Satchel - Satchel   (UI_CSG_Weight 0.0 / 12)"), true, "satchel header")
+    local bags = bagButtons(panel)
+    eq(#bags, 2, "one button per worn bag")
+    eq(bags[1].title, "ALICE Pack (Back)  -  0 UI_CSG_Items, 0.0 / 27", "bag header")
+    eq(bags[2].title, "Satchel (Satchel)  -  0 UI_CSG_Items, 0.0 / 12", "satchel header")
     eq(screen.clothingPanel.scrollHeight > 200, true, "scroll height extended")
 end)
 
@@ -70,7 +78,8 @@ test("choices update the selection, the bag summary and the saved file", functio
     eq(Stubs.files["ChooseStartingGear_last.txt"] ~= nil, true, "selection saved")
     -- the edit button opens the dialog on this bag
     local key = "Base.Bag_ALICEpack#1"
-    buttonsTitled(panel, "UI_CSG_EditContents")[1]:click()
+    eq(bagButtons(panel)[1].title, "ALICE Pack (Back)  -  0 UI_CSG_Items, 0.0 / 27", "bag row is a big titled button")
+    bagButtons(panel)[1]:click()
     local dialog = CSG_BagContentsDialog.instance
     eq(dialog ~= nil, true, "dialog created")
     eq(dialog.bagKey, key)
@@ -87,13 +96,18 @@ test("choices update the selection, the bag summary and the saved file", functio
     dialog.catalogList.selected = 1
     dialog:onAddClicked()
     eq(#CSG_Selection.containerItems(CSG_State.selection, key), 2, "add button adds the highlighted row")
+    dialog:onQuickAdd(nil, 5)
+    eq(CSG_Selection.containerItems(CSG_State.selection, key)[2].count, 7, "+5 quick add")
+    dialog:onQuickAdd(nil, 1)
+    dialog.contentsList.selected = 2
+    dialog:onAdjustClicked(nil, -1)
+    dialog:onAdjustClicked(nil, -5)
     eq(#dialog.contentsList.items, 2)
     dialog.contentsList.selected = 1
     dialog:onAdjustClicked(nil, -1)
     eq(CSG_Selection.containerItems(CSG_State.selection, key)[1].count, 1, "-1 adjusts")
     eq(dialog.weightLabel.name, "UI_CSG_Weight 1.4 / 27", "weight label")
-    eq(has(labels(panel), "ALICE Pack - Back   (UI_CSG_Weight 1.4 / 27)"), true, "panel header follows the dialog")
-    eq(has(labels(panel), "1x Water Bottle, 2x Pop"), true, "panel summary")
+    eq(bagButtons(panel)[1].title, "ALICE Pack (Back)  -  3 UI_CSG_Items, 1.4 / 27", "bag button follows the dialog")
     dialog.contentsList.selected = 2
     dialog:onRemoveClicked()
     eq(#CSG_Selection.containerItems(CSG_State.selection, key), 1)
@@ -104,27 +118,31 @@ test("choices update the selection, the bag summary and the saved file", functio
     dialog:changed()
 end)
 
-test("the preview renders attached gear and only rebuilds when something changed", function()
+test("the preview renders attached gear on one hidden player and only re-syncs on change", function()
     local screen = Stubs.screen(worn({ "Base.Belt2", "Belt" }, { "Base.Bag_ALICEpack", "Back" }))
     CSG_Preview.key = nil
+    CSG_Preview.player = nil
+    local built = Stubs.playersBuilt
     local panel = panelOf(screen)
     local model = screen.avatarPanel.avatarPanel
     local avatar = model.lastCharacter
     eq(avatar ~= nil, true, "live character shown once the catalog is ready and gear is chosen")
-    eq(avatar, CSG_Preview.avatar)
+    eq(avatar, CSG_Preview.player)
+    eq(Stubs.playersBuilt, built + 1, "one preview player created")
     eq(#avatar.attachedRaw, 3, "three attached items on the preview")
     eq(avatar.primary, nil, "hand items are not equipped on the preview")
     eq(avatar.copiedLook ~= nil, true, "look copied from the desc")
-    local built = Stubs.survivorsBuilt
+    eq(avatar.wornSet ~= nil, true, "worn items taken from the desc")
+    local resets = avatar.resets
     for _ = 1, 50 do screen.avatarPanel:setSurvivorDesc(MainScreen.instance.desc) end
-    eq(Stubs.survivorsBuilt, built, "mouse-move re-renders reuse the cached character")
-    eq(model.lastCharacter, avatar)
+    eq(avatar.resets, resets, "mouse-move re-renders do not re-sync")
+    eq(Stubs.playersBuilt, built + 1, "and never create another player")
     MainScreen.instance.desc.look.hair = "Mohawk"
     screen.avatarPanel:setSurvivorDesc(MainScreen.instance.desc)
-    eq(Stubs.survivorsBuilt, built + 1, "a hair change rebuilds the preview")
+    eq(avatar.resets, resets + 1, "a hair change re-syncs the preview")
     local c = combos(panel)
     c.Back:pick(nil)
-    eq(#model.lastCharacter.attachedRaw, 2, "clearing a slot updates the preview")
+    eq(#avatar.attachedRaw, 2, "clearing a slot updates the preview")
     panel:onClearAll()
     screen.avatarPanel:setSurvivorDesc(MainScreen.instance.desc)
     eq(model.lastCharacter, nil, "vanilla desc preview when nothing is chosen")
@@ -142,11 +160,11 @@ test("bags can be chosen from the panel and then filled", function()
     c.Satchel:pick("Base.Bag_Satchel")
     eq(MainScreen.instance.desc:getWornItem("Satchel"):getFullType(), "Base.Bag_Satchel", "desc now wears the satchel")
     eq(screen.synced, 1, "vanilla combos told to re-sync")
-    eq(#buttonsTitled(panel, "UI_CSG_EditContents"), 1, "a contents row appeared for the satchel")
+    eq(#bagButtons(panel), 1, "a bag button appeared for the satchel")
     eq(combos(panel).Satchel.selected, 2, "bag combo shows the worn bag after rebuild")
     combos(panel).Satchel:pick(nil)
     eq(MainScreen.instance.desc:getWornItem("Satchel"), nil)
-    eq(#buttonsTitled(panel, "UI_CSG_EditContents"), 0)
+    eq(#bagButtons(panel), 0)
 end)
 
 test("pressing play then spawning applies gear through the hotbar", function()
@@ -170,16 +188,40 @@ test("pressing play then spawning applies gear through the hotbar", function()
     eq(#bag.contents, 3, "one pop and two water bottles in the bag")
 end)
 
-test("spawning without the slot skips the attachment and keeps the rest", function()
-    CSG_State.selection = CSG_Selection.deserialize("attach\tAliceSling\tBase.AssaultRifle\nhand\tprimary\tBase.Machete")
+test("spawning puts on clothing the desc wore but the player is missing, then attaches to it", function()
+    CSG_State.selection = CSG_Selection.deserialize("attach\tAliceSling\tBase.AssaultRifle\nhand\tprimary\tBase.Machete\ncontainer\tBase.Bag_Satchel#1\tBase.Pop\t2")
     CSG_State.pending = true
+    Stubs.screen(worn({ "Base.Belt2", "Belt" }, { "alice.Sling", "SlingFront" }, { "Base.Bag_Satchel", "Satchel" }))
     local player = Stubs.player(worn({ "Base.Belt2", "Belt" }))
     Stubs.currentPlayer = player
-    local plan
     Events.OnNewGame.fire(player, nil)
     Events.OnTick.fire()
-    eq(#player.hotbar.attached, 0)
+    eq(#player.worn, 3, "sling and satchel were put on")
+    eq(player.worn[2].location, "SlingFront", "clothing worn at its body location")
+    eq(player.worn[3].location:getTranslationName(), "Satchel", "bag worn at its equip location")
+    eq(#player.hotbar.attached, 1, "rifle attached to the sling that was just put on")
+    eq(player.hotbar.attached[1].slotType, "AliceSling")
     eq(player.primary:getFullType(), "Base.Machete")
+    local satchel = player.worn[3].item
+    eq(#satchel.contents, 2, "satchel filled")
+end)
+
+test("gear whose slot is still missing is retried a little later", function()
+    CSG_State.selection = CSG_Selection.deserialize("attach\tAliceSling\tBase.AssaultRifle")
+    CSG_State.pending = true
+    Stubs.screen(worn({ "Base.Belt2", "Belt" }))
+    local player = Stubs.player(worn({ "Base.Belt2", "Belt" }))
+    Stubs.currentPlayer = player
+    Events.OnNewGame.fire(player, nil)
+    Events.OnTick.fire()
+    eq(#player.hotbar.attached, 0, "nothing to attach to yet")
+    table.insert(player.worn, { item = Stubs.item("alice.Sling"), location = "SlingFront" })
+    for _ = 1, 119 do Events.OnTick.fire() end
+    eq(#player.hotbar.attached, 0, "not retried before the delay")
+    Events.OnTick.fire()
+    eq(#player.hotbar.attached, 1, "retried once the sling is worn")
+    for _ = 1, 130 do Events.OnTick.fire() end
+    eq(#player.hotbar.attached, 1, "retried only once")
 end)
 
 test("remembered selection survives a reload and prunes unknown items", function()

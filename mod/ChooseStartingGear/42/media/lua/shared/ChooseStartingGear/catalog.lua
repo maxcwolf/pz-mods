@@ -54,6 +54,7 @@ function Catalog.buildEntries(rawItems)
                 isWeapon = raw.isWeapon == true,
                 category = raw.category or "Unknown",
                 equipLocation = raw.equipLocation,
+                icon = raw.icon,
             })
         end
     end

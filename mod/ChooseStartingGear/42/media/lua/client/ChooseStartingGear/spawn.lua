@@ -3,6 +3,31 @@ require "ChooseStartingGear/apply"
 
 CSG_Spawn = CSG_Spawn or {}
 local MAX_TICKS = 600
+local RETRY_TICKS = 120
+
+--- Runs the plan once and schedules one retry for anything whose slot or bag
+--- was not on the player yet.
+local function applyOnce(player, selection, allowRetry)
+    local desc = MainScreen.instance and MainScreen.instance.desc
+    local ok, plan = pcall(CSG_Apply.toPlayer, player, selection, desc)
+    if not ok then
+        print("[ChooseStartingGear] failed to apply starting gear: " .. tostring(plan))
+        return
+    end
+    local retry = CSG_Plan.retrySelection(plan)
+    if allowRetry and not CSG_Selection.isEmpty(retry) then
+        local ticks = 0
+        local function onTick()
+            ticks = ticks + 1
+            if ticks >= RETRY_TICKS then
+                Events.OnTick.Remove(onTick)
+                print("[ChooseStartingGear] retrying skipped gear")
+                applyOnce(player, retry, false)
+            end
+        end
+        Events.OnTick.Add(onTick)
+    end
+end
 
 --- Applies the pending selection once the player's hotbar exists.
 local function applyWhenReady(player)
@@ -19,10 +44,7 @@ local function applyWhenReady(player)
         ticks = ticks + 1
         if getPlayerHotbar(player:getPlayerNum()) or ticks >= MAX_TICKS then
             Events.OnTick.Remove(onTick)
-            local ok, err = pcall(CSG_Apply.toPlayer, player, selection)
-            if not ok then
-                print("[ChooseStartingGear] failed to apply starting gear: " .. tostring(err))
-            end
+            applyOnce(player, selection, true)
         end
     end
     Events.OnTick.Add(onTick)

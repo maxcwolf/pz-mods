@@ -125,6 +125,7 @@ function Runtime.rawItem(script)
         obsolete = script:getObsolete(),
         weight = script:getActualWeight(),
         category = script:getDisplayCategory(),
+        icon = script:getNormalTexture(),
     }
     if CSG_Catalog.isExcluded(raw) then
         return raw

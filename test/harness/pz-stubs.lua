@@ -68,6 +68,7 @@ function Element:onMouseDownOutside() end
 function Element:drawRect() end
 function Element:drawRectBorder() end
 function Element:drawText() end
+function Element:drawTextureScaledAspect() end
 function Element:getYScroll() return 0 end
 function Element:setFont() end
 function Element:setOnlyNumbers() end
@@ -153,8 +154,8 @@ local SCRIPT_ITEMS = {
     { fullType = "Base.WaterBottleFull", name = "Water Bottle", weight = 0.8, category = "Food" },
     { fullType = "Base.Bag_ALICEpack", name = "ALICE Pack", weight = 1, container = true, capacity = 27, provided = {}, replacement = "Bag", equip = "Back" },
     { fullType = "Base.Bag_Satchel", name = "Satchel", weight = 1, container = true, capacity = 12, provided = {}, equip = "Satchel" },
-    { fullType = "Base.Belt2", name = "Belt", weight = 0.5, provided = { "SmallBeltLeft", "SmallBeltRight" } },
-    { fullType = "alice.Sling", name = "Sling", weight = 0.5, provided = { "AliceSling" } },
+    { fullType = "Base.Belt2", name = "Belt", weight = 0.5, provided = { "SmallBeltLeft", "SmallBeltRight" }, bodyLocation = "Belt" },
+    { fullType = "alice.Sling", name = "Sling", weight = 0.5, provided = { "AliceSling" }, bodyLocation = "SlingFront" },
     { fullType = "Base.Secret", name = "Secret", hidden = true },
     { fullType = "Moveables.Sofa", name = "Sofa" },
 }
@@ -166,6 +167,7 @@ local function scriptStub(def)
         getObsolete = function() return false end,
         getActualWeight = function() return def.weight or 0 end,
         getDisplayCategory = function() return def.category end,
+        getNormalTexture = function() return nil end,
     }
 end
 local scriptByType = {}
@@ -186,6 +188,8 @@ function Stubs.item(fullType)
         getAttachmentsProvided = function() return def.provided and Stubs.javaList(def.provided) or nil end,
         getAttachmentReplacement = function() return def.replacement end,
         getCapacity = function() return def.capacity end,
+        IsClothing = function() return def.provided ~= nil and not def.container end,
+        getBodyLocation = function() return def.bodyLocation end,
         canBeEquipped = function() return def.equip and { getTranslationName = function() return def.equip end } or nil end,
         isTwoHandWeapon = function() return def.twoHanded == true end,
         isRequiresEquippedBothHands = function() return false end,
@@ -256,6 +260,7 @@ function Stubs.player(worn)
     function player:setPrimaryHandItem(i) self.primary = i end
     function player:setSecondaryHandItem(i) self.secondary = i end
     function player:setAttachedItem(model, item) table.insert(self.attachedRaw, { model = model, item = item }) end
+    function player:setWornItem(location, item) table.insert(self.worn, { item = item, location = location }) end
     return player
 end
 function getPlayerHotbar(num) return Stubs.currentPlayer and Stubs.currentPlayer.hotbar end
@@ -292,6 +297,21 @@ function Stubs.desc(worn)
     end
     return desc
 end
+
+--- Preview player: IsoPlayer.new builds a character with a look and worn items.
+Stubs.playersBuilt = 0
+SurvivorFactory = { CreateSurvivor = function() return Stubs.desc({}) end }
+IsoPlayer = { new = function(cell, desc) 
+    local p = Stubs.player({})
+    Stubs.playersBuilt = Stubs.playersBuilt + 1
+    p.resets = 0
+    function p:resetModelNextFrame() self.resets = self.resets + 1 end
+    function p:setFemale() end
+    function p:getHumanVisual() return { copyFrom = function(_, v) p.copiedLook = v end } end
+    function p:setWornItems(w) self.wornSet = w end
+    function p:clearAttachedItems() self.attachedRaw = {} end
+    return p
+end }
 
 --- IsoSurvivor.new builds a preview character sharing the desc's worn list.
 Stubs.survivorsBuilt = 0

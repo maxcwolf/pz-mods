@@ -163,46 +163,30 @@ function CSG_GearPanel:addCombo(y, labelText, entries, selectedType, onChange, a
     return y + BUTTON_HGT + UI_BORDER_SPACING
 end
 
---- Returns a one-line summary of what is in a container, trimmed to a width.
-function CSG_GearPanel:contentsSummary(key, maxWidth)
-    local parts = {}
-    for _, stack in ipairs(CSG_Selection.containerItems(CSG_State.selection, key)) do
-        local entry = CSG_State.entry(stack.fullType)
-        table.insert(parts, tostring(stack.count) .. "x " .. (entry and entry.label or stack.fullType))
-    end
-    if #parts == 0 then
-        return getText("UI_CSG_EmptyBagSummary")
-    end
-    local text = table.concat(parts, ", ")
-    while #text > 4 and getTextManager():MeasureStringX(UIFont.Small, text .. "...") > maxWidth do
-        text = string.sub(text, 1, #text - 4)
-    end
-    if #text < #table.concat(parts, ", ") then
-        text = text .. "..."
-    end
-    return text
-end
-
---- Adds the rows for one worn container: a header with its weight, an edit
---- button, and a summary of what is inside; returns the next y.
+--- Adds one worn container as a full-width button that opens the contents
+--- dialog, titled with the bag, what is in it and its weight; returns the next y.
 function CSG_GearPanel:addContainer(y, container)
+    local stacks = CSG_Selection.containerItems(CSG_State.selection, container.key)
+    local count = 0
+    for _, stack in ipairs(stacks) do
+        count = count + stack.count
+    end
     local weight = CSG_Selection.containerWeight(CSG_State.selection, container.key, CSG_State.weightOf)
     local title = container.name
     if container.locationName then
-        title = title .. " - " .. container.locationName
+        title = title .. " (" .. container.locationName .. ")"
     end
-    title = title .. "   (" .. getText("UI_CSG_Weight") .. " " .. string.format("%.1f", weight) .. " / " .. tostring(container.capacity) .. ")"
-    local header = self:addLabel(0, y, title)
+    title = title .. "  -  " .. tostring(count) .. " " .. getText("UI_CSG_Items") .. ", " .. string.format("%.1f", weight) .. " / " .. tostring(container.capacity)
+    local button = self:track(ISButton:new(INDENT, y, self.width - INDENT, BUTTON_HGT + 6, title, self))
+    button:setOnClick(CSG_GearPanel.onEditContents, container.key)
+    button:initialise()
+    button:instantiate()
+    button.isBagButton = true
+    button.containerKey = container.key
     if weight > container.capacity then
-        header.r, header.g, header.b = 1, 0.45, 0.45
+        button.textColor = { r = 1, g = 0.45, b = 0.45, a = 1 }
     end
-    y = y + BUTTON_HGT + 2
-
-    local edit = self:addButton(INDENT, y, getText("UI_CSG_EditContents"), CSG_GearPanel.onEditContents, container.key)
-    local summaryX = edit:getRight() + UI_BORDER_SPACING
-    local summary = self:addLabel(summaryX, y, self:contentsSummary(container.key, self.width - summaryX))
-    summary.r, summary.g, summary.b = 0.8, 0.8, 0.8
-    return y + BUTTON_HGT + UI_BORDER_SPACING
+    return y + BUTTON_HGT + 6 + 4
 end
 
 --- Rebuilds every row from the worn items, the catalog and the selection.
@@ -257,6 +241,8 @@ function CSG_GearPanel:rebuild()
     y = self:addSectionTitle(y, getText("UI_CSG_Containers"))
     if #facts.containers == 0 then
         y = self:addHint(y, getText("UI_CSG_NoBags"))
+    else
+        y = self:addHint(y, getText("UI_CSG_ClickBag"))
     end
     for _, container in ipairs(facts.containers) do
         y = self:addContainer(y, container)
