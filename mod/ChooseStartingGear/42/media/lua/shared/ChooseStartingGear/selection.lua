@@ -1,11 +1,31 @@
 --- Pure model of what the player chose: hand items, one item per attachment
---- slot, and item stacks per worn container. Serializes to a tab-separated
---- text format so the last selection can be remembered between games.
+--- slot, item stacks per worn container, and a few options such as whether
+--- firearms and magazines spawn loaded. Serializes to a tab-separated text
+--- format so the last selection can be remembered between games.
 local Selection = {}
+
+--- The options a selection carries and their defaults.
+Selection.OPTION_DEFAULTS = { loaded = true }
+
+--- Returns a fresh copy of the option defaults.
+local function defaultOptions()
+    local options = {}
+    for key, value in pairs(Selection.OPTION_DEFAULTS) do
+        options[key] = value
+    end
+    return options
+end
 
 --- Creates an empty selection.
 function Selection.new()
-    return { hands = {}, attachments = {}, containers = {} }
+    return { hands = {}, attachments = {}, containers = {}, options = defaultOptions() }
+end
+
+--- Sets a known option; unknown names are ignored.
+function Selection.setOption(sel, name, value)
+    if Selection.OPTION_DEFAULTS[name] ~= nil then
+        sel.options[name] = value
+    end
 end
 
 --- Builds the key used to address a worn container: its type plus the
@@ -156,6 +176,11 @@ function Selection.serialize(sel)
             table.insert(lines, "container\t" .. key .. "\t" .. stack.fullType .. "\t" .. tostring(stack.count))
         end
     end
+    for _, name in ipairs(sortedKeys(sel.options)) do
+        if sel.options[name] ~= Selection.OPTION_DEFAULTS[name] then
+            table.insert(lines, "option\t" .. name .. "\t" .. (sel.options[name] and "1" or "0"))
+        end
+    end
     return table.concat(lines, "\n")
 end
 
@@ -182,6 +207,8 @@ function Selection.deserialize(text)
             if count > 0 then
                 Selection.addToContainer(sel, f[2], f[3], count)
             end
+        elseif f[1] == "option" and f[2] ~= "" and f[3] then
+            Selection.setOption(sel, f[2], f[3] == "1")
         end
     end
     return sel

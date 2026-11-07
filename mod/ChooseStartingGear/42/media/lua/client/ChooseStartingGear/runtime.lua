@@ -105,6 +105,15 @@ function Runtime.facts(owner)
     }
 end
 
+--- Returns the full types of everything a desc or player wears, in order.
+function Runtime.wornTypes(owner)
+    local types = {}
+    for _, worn in ipairs(Runtime.wornItems(owner)) do
+        table.insert(types, worn.item:getFullType())
+    end
+    return types
+end
+
 --- Builds a cheap string that changes whenever the worn items change.
 function Runtime.wornSignature(owner)
     local parts = {}
@@ -133,6 +142,7 @@ function Runtime.rawItem(script)
     local ok, inst = pcall(instanceItem, fullType)
     if ok and inst then
         raw.attachmentType = inst:getAttachmentType()
+        raw.maxAmmo = inst:getMaxAmmo()
         if instanceof(inst, "InventoryContainer") then
             raw.isContainer = true
             raw.capacity = inst:getCapacity()
@@ -144,6 +154,7 @@ function Runtime.rawItem(script)
         if instanceof(inst, "HandWeapon") then
             raw.isWeapon = true
             raw.twoHanded = inst:isTwoHandWeapon() or inst:isRequiresEquippedBothHands()
+            raw.isFirearm = inst:isRanged()
         end
     end
     return raw

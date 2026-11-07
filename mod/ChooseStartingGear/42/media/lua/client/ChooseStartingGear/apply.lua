@@ -1,5 +1,5 @@
 --- Executes a spawn plan against a live IsoPlayer: fills worn bags, attaches
---- items to hotbar slots and equips hand items.
+--- items to hotbar slots, equips hand items and loads firearms and magazines.
 require "ChooseStartingGear/state"
 
 CSG_Apply = CSG_Apply or {}
@@ -32,11 +32,43 @@ local function wornSummary(owner)
     return table.concat(parts, ", ")
 end
 
---- Puts on the player any item the desc wore that the player is missing, so
---- modded clothing and bags chosen on the screen are there before gear is
---- attached. Returns how many items were added.
-function Apply.ensureWorn(player, desc)
-    if not desc then
+--- Fills a firearm or magazine to its maximum; returns true when it did.
+function Apply.loadAmmo(item)
+    local max = item:getMaxAmmo()
+    if not max or max <= 0 then
+        return false
+    end
+    if instanceof(item, "HandWeapon") then
+        if not item:isRanged() then
+            return false
+        end
+        if item:usesExternalMagazine() then
+            item:setContainsClip(true)
+        end
+        item:setCurrentAmmoCount(max)
+        if item:haveChamber() then
+            item:setRoundChambered(true)
+        end
+        return true
+    end
+    item:setCurrentAmmoCount(max)
+    return true
+end
+
+--- Adds an item to an inventory and loads it when the selection asks for it.
+local function addItem(inventory, fullType, selection)
+    local item = inventory:AddItem(fullType)
+    if item and selection.options and selection.options.loaded then
+        Apply.loadAmmo(item)
+    end
+    return item
+end
+
+--- Puts on the player any item type in `wornTypes` (what the character wore
+--- on the creation screen) that the player is missing, so modded clothing and
+--- bags are there before gear is attached. Returns how many items were added.
+function Apply.ensureWorn(player, wornTypes)
+    if not wornTypes then
         return 0
     end
     local have = {}
@@ -45,8 +77,7 @@ function Apply.ensureWorn(player, desc)
         have[fullType] = (have[fullType] or 0) + 1
     end
     local added = 0
-    for _, worn in ipairs(CSG_Runtime.wornItems(desc)) do
-        local fullType = worn.item:getFullType()
+    for _, fullType in ipairs(wornTypes) do
         if (have[fullType] or 0) > 0 then
             have[fullType] = have[fullType] - 1
         else
@@ -65,17 +96,17 @@ function Apply.ensureWorn(player, desc)
 end
 
 --- Gives the player everything in the selection and returns the plan, whose
---- `skipped` list names anything that could not be placed. `desc` is the
---- character description the player was created from, when known.
-function Apply.toPlayer(player, selection, desc)
+--- `skipped` list names anything that could not be placed. `wornTypes` is
+--- what the character wore on the creation screen, when known.
+function Apply.toPlayer(player, selection, wornTypes)
     if not CSG_State.catalogReady() then
         CSG_State.finishCatalog()
     end
-    if desc then
-        print("[ChooseStartingGear] desc wore: " .. wornSummary(desc))
+    if wornTypes then
+        print("[ChooseStartingGear] screen wore: " .. table.concat(wornTypes, ", "))
     end
     print("[ChooseStartingGear] player wears: " .. wornSummary(player))
-    Apply.ensureWorn(player, desc)
+    Apply.ensureWorn(player, wornTypes)
     local facts = CSG_Runtime.facts(player)
     local plan = CSG_Plan.build(selection, facts)
 
@@ -86,7 +117,7 @@ function Apply.toPlayer(player, selection, desc)
     for _, op in ipairs(plan.containers) do
         local inventory = containerByKey[op.key].item:getInventory()
         for _ = 1, op.count do
-            inventory:AddItem(op.fullType)
+            addItem(inventory, op.fullType, selection)
         end
     end
 
@@ -96,14 +127,14 @@ function Apply.toPlayer(player, selection, desc)
     end
     local inventory = player:getInventory()
     for _, op in ipairs(plan.attachments) do
-        local item = inventory:AddItem(op.fullType)
+        local item = addItem(inventory, op.fullType, selection)
         if item then
             attach(player, hotbar, op, item)
         end
     end
 
     for _, op in ipairs(plan.hands) do
-        local item = inventory:AddItem(op.fullType)
+        local item = addItem(inventory, op.fullType, selection)
         if item then
             if op.hand == "primary" then
                 player:setPrimaryHandItem(item)

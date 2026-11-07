@@ -76,3 +76,17 @@ test("bagLocations groups wearable containers by location", function()
     eq(#groups[1].entries, 2)
     eq(groups[2].location, "FannyPackFront")
 end)
+
+test("buildEntries keeps ammo facts and holdsAmmo reads them", function()
+    local entries = C.buildEntries({
+        { fullType = "Base.Pistol", displayName = "Pistol", maxAmmo = 15, isFirearm = true, isWeapon = true },
+        { fullType = "Base.9mmClip", displayName = "Magazine", maxAmmo = 15 },
+        { fullType = "Base.Axe", displayName = "Axe", isWeapon = true },
+    })
+    eq(entries[1].maxAmmo, 0, "axe")
+    eq(C.holdsAmmo(entries[1]), false)
+    eq(entries[2].maxAmmo, 15, "magazine")
+    eq(C.holdsAmmo(entries[2]), true)
+    eq(entries[3].isFirearm, true, "pistol")
+    eq(C.holdsAmmo(entries[3]), true)
+end)

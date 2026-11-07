@@ -25,7 +25,7 @@ end
 
 local function combos(panel)
     local out = {}
-    for _, w in ipairs(panel.widgets) do if w.options then out[w.onChangeArgs[1]] = w end end
+    for _, w in ipairs(panel.widgets) do if w.onChangeArgs then out[w.onChangeArgs[1]] = w end end
     return out
 end
 
@@ -45,7 +45,7 @@ test("panel loads, builds catalog and lists slots for worn belt and sling", func
     CSG_State.selection = CSG_Selection.new()
     local screen = Stubs.screen(worn({ "Base.Belt2", "Belt" }, { "alice.Sling", "SlingFront" }, { "Base.Bag_ALICEpack", "Back" }, { "Base.Bag_Satchel", "Satchel" }))
     local panel = panelOf(screen)
-    eq(#CSG_State.entries, 10, "catalog size without hidden and moveables")
+    eq(#CSG_State.entries, 13, "catalog size without hidden and moveables")
     local c = combos(panel)
     eq(c.primary ~= nil, true, "primary hand combo")
     eq(c.SmallBeltLeft ~= nil, true, "belt left combo")
@@ -83,7 +83,7 @@ test("choices update the selection, the bag summary and the saved file", functio
     local dialog = CSG_BagContentsDialog.instance
     eq(dialog ~= nil, true, "dialog created")
     eq(dialog.bagKey, key)
-    eq(#dialog.catalogList.items, 10, "catalog lists everything with no filter")
+    eq(#dialog.catalogList.items, 13, "catalog lists everything with no filter")
     dialog.categoryCombo:selectData("Food")
     dialog:onFilterChanged()
     eq(#dialog.catalogList.items, 2, "category filter")
@@ -190,8 +190,10 @@ end)
 
 test("spawning puts on clothing the desc wore but the player is missing, then attaches to it", function()
     CSG_State.selection = CSG_Selection.deserialize("attach\tAliceSling\tBase.AssaultRifle\nhand\tprimary\tBase.Machete\ncontainer\tBase.Bag_Satchel#1\tBase.Pop\t2")
-    CSG_State.pending = true
-    Stubs.screen(worn({ "Base.Belt2", "Belt" }, { "alice.Sling", "SlingFront" }, { "Base.Bag_Satchel", "Satchel" }))
+    local screen = Stubs.screen(worn({ "Base.Belt2", "Belt" }, { "alice.Sling", "SlingFront" }, { "Base.Bag_Satchel", "Satchel" }))
+    screen:onOptionMouseDown({ internal = "NEXT" })
+    eq(#CSG_State.wornAtPlay, 3, "worn clothing snapshotted at Play")
+    MainScreen.instance.desc = nil
     local player = Stubs.player(worn({ "Base.Belt2", "Belt" }))
     Stubs.currentPlayer = player
     Events.OnNewGame.fire(player, nil)
@@ -208,8 +210,8 @@ end)
 
 test("gear whose slot is still missing is retried a little later", function()
     CSG_State.selection = CSG_Selection.deserialize("attach\tAliceSling\tBase.AssaultRifle")
-    CSG_State.pending = true
-    Stubs.screen(worn({ "Base.Belt2", "Belt" }))
+    local screen = Stubs.screen(worn({ "Base.Belt2", "Belt" }))
+    screen:onOptionMouseDown({ internal = "NEXT" })
     local player = Stubs.player(worn({ "Base.Belt2", "Belt" }))
     Stubs.currentPlayer = player
     Events.OnNewGame.fire(player, nil)
@@ -230,4 +232,86 @@ test("remembered selection survives a reload and prunes unknown items", function
     CSG_State.load()
     eq(CSG_State.selection.attachments.Back, nil, "last line wins then pruned as unknown")
     eq(CSG_Selection.containerItems(CSG_State.selection, "Base.Bag_ALICEpack#1")[1].count, 3)
+end)
+
+test("the saved outfits reader keeps modded body locations whose keys contain colons", function()
+    local value = "gender=1;Jacket=Base.Jacket;alicesweaponsling:slingback=alice.Sling;tks:KnifeSheathBack=Base.Knife;"
+    Stubs.files["saved_outfits.txt"] = "VERSION=1\nMax Wolf:" .. value .. "\n"
+    eq(CharacterCreationMain.readSavedOutfitFile()["Max Wolf"], value)
+end)
+
+test("saving, loading and deleting a vanilla build carries the gear with it", function()
+    Stubs.files["saved_outfits.txt"] = nil
+    Stubs.files["ChooseStartingGear_builds.txt"] = nil
+    local screen = Stubs.screen(worn({ "Base.Belt2", "Belt" }, { "Base.Bag_ALICEpack", "Back" }))
+    local panel = panelOf(screen)
+    CSG_State.selection = CSG_Selection.deserialize("attach\tSmallBeltLeft\tBase.Wrench\ncontainer\tBase.Bag_ALICEpack#1\tBase.Pop\t2")
+    local function saveButton(internal, name)
+        return { internal = internal, parent = { entry = { getText = function() return name end } } }
+    end
+    screen:saveBuildStep2(saveButton("CANCEL", "Nope"))
+    eq(Stubs.files["ChooseStartingGear_builds.txt"], nil, "cancel writes nothing")
+    screen:saveBuildStep2(saveButton("OK", "Max Wolf"))
+    eq(CSG_State.readBuilds()["Max Wolf"].attachments.SmallBeltLeft, "Base.Wrench", "gear stored under the build name")
+    CSG_State.selection = CSG_Selection.new()
+    panel:rebuild()
+    eq(combos(panel).SmallBeltLeft:getOptionData(combos(panel).SmallBeltLeft.selected), nil)
+    screen:loadOutfit(screen.savedBuilds)
+    eq(CSG_State.selection.attachments.SmallBeltLeft, "Base.Wrench", "gear restored with the build")
+    eq(CSG_Selection.containerItems(CSG_State.selection, "Base.Bag_ALICEpack#1")[1].count, 2)
+    eq(combos(panel).SmallBeltLeft:getOptionData(combos(panel).SmallBeltLeft.selected), "Base.Wrench", "panel shows the restored gear")
+    eq(Stubs.files["ChooseStartingGear_last.txt"]:find("Base.Wrench", 1, true) ~= nil, true, "restored gear becomes the remembered selection")
+    screen.savedBuilds.options = { "Max Wolf", "Plain" }
+    screen.savedBuilds.selected = 2
+    screen:loadOutfit(screen.savedBuilds)
+    eq(CSG_State.selection.attachments.SmallBeltLeft, "Base.Wrench", "a build saved without gear keeps the current gear")
+    screen.savedBuilds.selected = 1
+    screen:deleteBuildStep2({ internal = "NO" })
+    eq(CSG_State.readBuilds()["Max Wolf"] ~= nil, true, "declining the delete keeps the gear")
+    screen:deleteBuildStep2({ internal = "YES" })
+    eq(CSG_State.readBuilds()["Max Wolf"], nil, "gear removed with the build")
+end)
+
+test("firearms and magazines spawn fully loaded unless the option is off", function()
+    local function spawn()
+        local screen = Stubs.screen(worn({ "Base.Bag_ALICEpack", "Back" }))
+        screen:onOptionMouseDown({ internal = "NEXT" })
+        local player = Stubs.player(worn({ "Base.Bag_ALICEpack", "Back" }))
+        Stubs.currentPlayer = player
+        Events.OnNewGame.fire(player, nil)
+        Events.OnTick.fire()
+        return player, player.worn[1].item.contents
+    end
+    CSG_State.selection = CSG_Selection.deserialize("hand\tprimary\tBase.Shotgun\ncontainer\tBase.Bag_ALICEpack#1\tBase.9mmClip\t2\ncontainer\tBase.Bag_ALICEpack#1\tBase.Pistol\t1\ncontainer\tBase.Bag_ALICEpack#1\tBase.Pop\t1")
+    local player, contents = spawn()
+    eq(#contents, 4)
+    eq(contents[1].ammoState.count, 15, "magazine filled")
+    eq(contents[2].ammoState.count, 15, "second magazine filled")
+    eq(contents[3].ammoState.count, 15, "pistol loaded")
+    eq(contents[3].ammoState.containsClip, true, "pistol has its magazine inserted")
+    eq(contents[3].ammoState.chambered, true, "pistol has a round chambered")
+    eq(contents[4].ammoState.count, nil, "pop is left alone")
+    eq(player.primary.ammoState.count, 6, "shotgun in hand loaded")
+    eq(player.primary.ammoState.containsClip, nil, "shotgun has no magazine")
+    eq(player.primary.ammoState.chambered, nil, "shotgun has no chamber flag")
+    CSG_Selection.setOption(CSG_State.selection, "loaded", false)
+    player, contents = spawn()
+    eq(contents[1].ammoState.count, nil, "magazine empty with the option off")
+    eq(contents[3].ammoState.containsClip, nil, "pistol untouched with the option off")
+    eq(player.primary.ammoState.count, nil)
+end)
+
+test("the panel's loaded tick box drives the option and saves it", function()
+    CSG_State.selection = CSG_Selection.new()
+    local screen = Stubs.screen(worn({ "Base.Belt2", "Belt" }))
+    local panel = panelOf(screen)
+    eq(panel.loadedTick ~= nil, true, "tick box present")
+    eq(panel.loadedTick:isSelected(1), true, "on by default")
+    panel.loadedTick:toggle(1)
+    eq(CSG_State.selection.options.loaded, false)
+    eq(Stubs.files["ChooseStartingGear_last.txt"], "option\tloaded\t0", "saved")
+    panel:rebuild()
+    eq(panel.loadedTick:isSelected(1), false, "rebuild keeps the choice")
+    panel.loadedTick:toggle(1)
+    eq(CSG_State.selection.options.loaded, true)
 end)

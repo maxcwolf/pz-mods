@@ -27,5 +27,6 @@
     "UI_CSG_Weight": "Weight",
     "UI_CSG_NoBags": "Pick a bag under Bags to choose what goes in it.",
     "UI_CSG_NoSlots": "Wear a belt, holster or sling above to unlock attachment slots.",
-    "UI_CSG_Loading": "Reading item list..."
+    "UI_CSG_Loading": "Reading item list...",
+    "UI_CSG_LoadedAmmo": "Firearms and magazines start fully loaded"
 }

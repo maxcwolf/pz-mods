@@ -33,6 +33,20 @@
   skipped. The spawn code now puts on anything the desc wore that the player
   is missing, logs both lists, and retries skipped gear two seconds later.
   Root cause of the missing clothing is still unknown.
+- Fifth run (2026-11-05, log read 2026-11-06): no stack traces. Modded
+  clothing was still skipped at spawn because `MainScreen.instance.desc` is
+  already nil when `OnNewGame` fires, so the "put on what the desc wore" step
+  never ran. Pressing Play now snapshots the worn item types and spawn uses
+  that list. Unverified in the game.
+- Vanilla's saved builds (the "Save build" presets) lost clothing when the
+  mod's modded locations were in play: `readSavedOutfitFile` splits each line
+  on every colon and modded body locations such as `alicesweaponsling:slingback`
+  contain one, so everything from that item on was dropped. The mod now
+  replaces that reader with one that splits at the first colon. Builds saved
+  before the fix are intact on disk and load correctly once the mod is on.
+- Loaded ammo uses `setCurrentAmmoCount`, `setContainsClip` and
+  `setRoundChambered`; whether every modded firearm honors those flags (some
+  mods track magazines differently) is unverified.
 - Multiplayer: starting gear is applied from `OnCreatePlayer` on a client when
   the character has zero hours survived. Untested; item sync on a server may
   need `sendAddItemToContainer`-style calls.

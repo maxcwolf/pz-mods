@@ -6,6 +6,7 @@ require "ISUI/ISLabel"
 require "ISUI/ISButton"
 require "ISUI/ISComboBox"
 require "ISUI/ISRect"
+require "ISUI/ISTickBox"
 require "ChooseStartingGear/state"
 require "ChooseStartingGear/BagContentsDialog"
 require "ChooseStartingGear/preview"
@@ -189,6 +190,23 @@ function CSG_GearPanel:addContainer(y, container)
     return y + BUTTON_HGT + 6 + 4
 end
 
+--- Adds the "firearms and magazines start loaded" tick box; returns the next y.
+function CSG_GearPanel:addLoadedTick(y)
+    local tick = self:track(ISTickBox:new(0, y, self.width, FONT_HGT_SMALL + 2, "", self, CSG_GearPanel.onLoadedChanged))
+    tick.autoWidth = true
+    tick:initialise()
+    tick:addOption(getText("UI_CSG_LoadedAmmo"))
+    tick:setSelected(1, CSG_State.selection.options.loaded == true)
+    self.loadedTick = tick
+    return y + FONT_HGT_SMALL + 2 + 4
+end
+
+--- Stores the loaded-ammo choice.
+function CSG_GearPanel:onLoadedChanged(index, selected)
+    CSG_Selection.setOption(CSG_State.selection, "loaded", selected == true)
+    CSG_State.save()
+end
+
 --- Rebuilds every row from the worn items, the catalog and the selection.
 function CSG_GearPanel:rebuild()
     self:clearWidgets()
@@ -198,6 +216,7 @@ function CSG_GearPanel:rebuild()
     local clear = self:addButton(0, y, getText("UI_CSG_Clear"), CSG_GearPanel.onClearAll)
     clear:setX(self.width - clear:getWidth())
     y = y + FONT_HGT_MEDIUM + 5
+    y = self:addLoadedTick(y)
     local rule = self:track(ISRect:new(0, y, self.width, 1, 1, 0.3, 0.3, 0.3))
     rule:initialise()
     rule:instantiate()

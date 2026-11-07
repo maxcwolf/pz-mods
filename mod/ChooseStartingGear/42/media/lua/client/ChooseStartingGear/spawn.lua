@@ -8,8 +8,11 @@ local RETRY_TICKS = 120
 --- Runs the plan once and schedules one retry for anything whose slot or bag
 --- was not on the player yet.
 local function applyOnce(player, selection, allowRetry)
-    local desc = MainScreen.instance and MainScreen.instance.desc
-    local ok, plan = pcall(CSG_Apply.toPlayer, player, selection, desc)
+    local wornTypes = CSG_State.wornAtPlay
+    if not wornTypes and MainScreen and MainScreen.instance and MainScreen.instance.desc then
+        wornTypes = CSG_Runtime.wornTypes(MainScreen.instance.desc)
+    end
+    local ok, plan = pcall(CSG_Apply.toPlayer, player, selection, wornTypes)
     if not ok then
         print("[ChooseStartingGear] failed to apply starting gear: " .. tostring(plan))
         return

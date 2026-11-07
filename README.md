@@ -14,11 +14,21 @@ the clothing choices:
   anything a mod lets you wear), an "Edit contents..." button opens a dialog
   where you filter the whole item list by category and name, add any quantity,
   and adjust or remove stacks, with a running weight against the bag's capacity.
-- **Preview**: attached and held items show on the rotating character preview.
+- **Preview**: attached items show on the rotating character preview.
+- **Loaded ammo**: a tick box (on by default) makes every firearm and magazine
+  you chose start fully loaded, including a round in the chamber.
+- **Saved builds**: the gear is saved, loaded and deleted together with the
+  vanilla "Save build" presets, so a named build brings its gear back with it.
 
 The mod reads the same tables the in-game hotbar uses, so it works with other
 mods' slots and items without any per-mod configuration. Your last selection
 is remembered between games.
+
+The mod also fixes a vanilla bug in the saved-builds file: the game split each
+saved line on every colon, so a build wearing modded clothing whose body
+location is namespaced (for example `alicesweaponsling:slingback` from Alice's
+Weapon Sling) lost everything after that item when loaded. With the mod on,
+builds load in full.
 
 ## Install
 
@@ -38,12 +48,13 @@ mod/ChooseStartingGear/42/
   media/lua/shared/ChooseStartingGear/   pure, unit-tested logic (no game globals)
     slot-logic.lua   which slots exist and what fits them (mirrors ISHotbar)
     catalog.lua      item list building, search, de-duplication
-    selection.lua    the chosen gear and its text serialization
+    selection.lua    the chosen gear, its options and its text serialization
     plan.lua         selection + spawn-time facts -> operations and skips
+    builds.lua       vanilla saved-builds parsing and the per-build gear file
   media/lua/client/ChooseStartingGear/   game-facing code
     runtime.lua      reads SurvivorDesc / IsoPlayer / script items into tables
-    state.lua        current selection, incremental item catalog, save/load
-    apply.lua        fills bags, attaches to hotbar slots, equips hands
+    state.lua        current selection, incremental item catalog, save/load, per-build gear
+    apply.lua        fills bags, attaches to hotbar slots, equips hands, loads ammo
     spawn.lua        OnNewGame / OnCreatePlayer hooks
     GearPanel.lua    the UI section added to the character creation screen
     BagContentsDialog.lua  the bag contents window (category + search + quantity)
@@ -73,9 +84,15 @@ Install LuaJIT with `brew install luajit`.
 3. The vanilla preview renders the `SurvivorDesc`, which only knows clothing.
    When gear is chosen the mod renders a hidden `IsoPlayer` instead, kept in
    sync with the desc's look and worn items plus the chosen attachments.
-4. Pressing Play saves the selection to `~/Zomboid/Lua/ChooseStartingGear_last.txt`
-   and arms the spawn hook. On `OnNewGame` the plan is built against the real
-   player, items are added, bags are filled and hotbar attachments are made
-   through the player's `ISHotbar` so the icons and models match normal play.
-   Anything that no longer fits (for example a slot from clothing you took off)
-   is skipped and logged to the console with a reason.
+4. Pressing Play saves the selection to `~/Zomboid/Lua/ChooseStartingGear_last.txt`,
+   remembers what the character wore on the screen (the screen's desc is gone
+   by the time the player exists) and arms the spawn hook. On `OnNewGame` the
+   plan is built against the real player: anything worn on the screen that the
+   game did not put on the player is put on first, items are added, bags are
+   filled, firearms and magazines are loaded when the tick box is on, and
+   hotbar attachments are made through the player's `ISHotbar` so the icons
+   and models match normal play. Anything that no longer fits is skipped and
+   logged to the console with a reason, then retried once two seconds later.
+5. Gear saved with a vanilla build lives in
+   `~/Zomboid/Lua/ChooseStartingGear_builds.txt`, one `build<TAB>name` header
+   per build followed by that build's selection lines.

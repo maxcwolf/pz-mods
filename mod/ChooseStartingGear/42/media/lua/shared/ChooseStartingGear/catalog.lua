@@ -55,6 +55,8 @@ function Catalog.buildEntries(rawItems)
                 category = raw.category or "Unknown",
                 equipLocation = raw.equipLocation,
                 icon = raw.icon,
+                maxAmmo = raw.maxAmmo or 0,
+                isFirearm = raw.isFirearm == true,
             })
         end
     end
@@ -66,6 +68,11 @@ function Catalog.buildEntries(rawItems)
         end
     end
     return Catalog.sortByName(entries)
+end
+
+--- Returns true when the item is a firearm or a magazine that holds rounds.
+function Catalog.holdsAmmo(entry)
+    return (entry.maxAmmo or 0) > 0
 end
 
 --- Returns the entries whose label or full type contains every word of the

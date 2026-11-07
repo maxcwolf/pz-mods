@@ -124,6 +124,18 @@ function ISTextEntryBox:setText(t) self.text = t end
 function ISTextEntryBox:type(t) self.text = t; self:onTextChange() end
 function ISTextEntryBox:onTextChange() end
 
+ISTickBox = Element:derive("ISTickBox")
+function ISTickBox:new(x, y, w, h, name, target, method, arg1, arg2)
+    local o = Element.new(self, x, y, w, h)
+    o.name = name; o.target = target; o.method = method; o.args = { arg1, arg2 }
+    o.options = {}; o.selected = {}; o.isTickBox = true
+    return o
+end
+function ISTickBox:addOption(text) table.insert(self.options, text); self.selected[#self.options] = false; return #self.options end
+function ISTickBox:setSelected(i, v) self.selected[i] = v end
+function ISTickBox:isSelected(i) return self.selected[i] == true end
+function ISTickBox:toggle(i) self.selected[i] = not self.selected[i]; self.method(self.target, i, self.selected[i], self.args[1], self.args[2]) end
+
 ISScrollingListBox = Element:derive("ISScrollingListBox")
 function ISScrollingListBox:new(x, y, w, h) local o = Element.new(self, x, y, w, h); o.items = {}; return o end
 function ISScrollingListBox:clear() self.items = {} end
@@ -158,6 +170,9 @@ local SCRIPT_ITEMS = {
     { fullType = "alice.Sling", name = "Sling", weight = 0.5, provided = { "AliceSling" }, bodyLocation = "SlingFront" },
     { fullType = "Base.Secret", name = "Secret", hidden = true },
     { fullType = "Moveables.Sofa", name = "Sofa" },
+    { fullType = "Base.Pistol", name = "Pistol", weapon = true, ranged = true, maxAmmo = 15, externalMagazine = true, chamber = true, attachmentType = "Holster", weight = 1.5, category = "Weapon" },
+    { fullType = "Base.9mmClip", name = "9mm Magazine", maxAmmo = 15, weight = 0.2, category = "Ammo" },
+    { fullType = "Base.Shotgun", name = "Shotgun", weapon = true, ranged = true, maxAmmo = 6, twoHanded = true, attachmentType = "Shotgun", weight = 4, category = "Weapon" },
 }
 local function scriptStub(def)
     return {
@@ -179,8 +194,10 @@ function getScriptManager() return { getAllItems = function() return Stubs.javaL
 function Stubs.item(fullType)
     local def = assert(scriptByType[fullType], "unknown stub item " .. tostring(fullType))
     local contents = {}
+    local ammo = {}
     local item = {
         classes = { InventoryItem = true, InventoryContainer = def.container, HandWeapon = def.weapon },
+        ammoState = ammo,
         contents = contents,
         getFullType = function() return def.fullType end,
         getDisplayName = function() return def.name end,
@@ -194,6 +211,14 @@ function Stubs.item(fullType)
         isTwoHandWeapon = function() return def.twoHanded == true end,
         isRequiresEquippedBothHands = function() return false end,
         getInventory = function() return { AddItem = function(_, t) local i = Stubs.item(t); table.insert(contents, i); return i end } end,
+        getMaxAmmo = function() return def.maxAmmo or 0 end,
+        isRanged = function() return def.ranged == true end,
+        usesExternalMagazine = function() return def.externalMagazine == true end,
+        haveChamber = function() return def.chamber == true end,
+        getCurrentAmmoCount = function() return ammo.count or 0 end,
+        setCurrentAmmoCount = function(_, n) ammo.count = n end,
+        setContainsClip = function(_, v) ammo.containsClip = v end,
+        setRoundChambered = function(_, v) ammo.chambered = v end,
     }
     return item
 end
@@ -330,6 +355,56 @@ function CharacterCreationMain:arrangeClothingUI() self.arranged = (self.arrange
 function CharacterCreationMain:removeAllClothingWidgets() self.removed = (self.removed or 0) + 1 end
 function CharacterCreationMain:onOptionMouseDown(button) self.lastOption = button.internal end
 function CharacterCreationMain:updateSelectedClothingCombo() self.synced = (self.synced or 0) + 1 end
+CharacterCreationMain.savefile = "saved_outfits.txt"
+--- Vanilla's reader, bug included: it splits a line on every colon.
+function CharacterCreationMain.readSavedOutfitFile()
+    local out = {}
+    local reader = getFileReader(CharacterCreationMain.savefile, true)
+    if not reader then return out end
+    local line = reader:readLine()
+    while line do
+        if not line:match("^VERSION=") then
+            local parts = {}
+            for part in line:gmatch("[^:]+") do table.insert(parts, part) end
+            out[parts[1]] = parts[2]
+        end
+        line = reader:readLine()
+    end
+    return out
+end
+function CharacterCreationMain.writeSaveFile(builds)
+    local text = "VERSION=1\n"
+    for k, v in pairs(builds) do text = text .. k .. ":" .. v .. "\n" end
+    Stubs.files[CharacterCreationMain.savefile] = text
+end
+--- Vanilla's save step, reduced to the file write and the combo refresh.
+function CharacterCreationMain:saveBuildStep2(button)
+    if button.internal == "CANCEL" then return end
+    local name = button.parent.entry:getText()
+    local builds = CharacterCreationMain.readSavedOutfitFile()
+    builds[name] = "gender=1;Jacket=Base.Jacket;alicesweaponsling:slingback=alice.Sling;"
+    CharacterCreationMain.writeSaveFile(builds)
+    self.savedBuilds.options = {}
+    for key in pairs(builds) do table.insert(self.savedBuilds.options, key) end
+    for i, key in ipairs(self.savedBuilds.options) do if key == name then self.savedBuilds.selected = i end end
+end
+function CharacterCreationMain:loadOutfit(box)
+    local name = box.options[box.selected]
+    if not name then return end
+    self.loadedBuild = CharacterCreationMain.readSavedOutfitFile()[name]
+    self:arrangeClothingUI()
+end
+function CharacterCreationMain:deleteBuildStep2(button)
+    if button.internal == "NO" then return end
+    local name = self.savedBuilds.options[self.savedBuilds.selected]
+    local builds = CharacterCreationMain.readSavedOutfitFile()
+    builds[name] = nil
+    CharacterCreationMain.writeSaveFile(builds)
+    self.savedBuilds.options = {}
+    for key in pairs(builds) do table.insert(self.savedBuilds.options, key) end
+    if self.savedBuilds.selected > #self.savedBuilds.options then self.savedBuilds.selected = #self.savedBuilds.options end
+    self:loadOutfit(self.savedBuilds)
+end
 function Stubs.screen(worn)
     local screen = CharacterCreationMain:new(0, 0, 800, 600)
     screen.clothingPanel = ISPanel:new(0, 0, 500, 400)
@@ -337,6 +412,7 @@ function Stubs.screen(worn)
     screen.clothingCombo = {}
     screen.yOffset = 200
     screen.labelRight = 100
+    screen.savedBuilds = { options = {}, selected = 0 }
     screen.avatarPanel = CharacterCreationAvatar:new(0, 0, 128, 260)
     screen.avatarPanel.avatarPanel = { setSurvivorDesc = function(m, d) m.lastDesc = d; m.lastCharacter = nil end, setCharacter = function(m, c) m.lastCharacter = c end }
     MainScreen = { instance = { desc = Stubs.desc(worn), avatar = {} } }

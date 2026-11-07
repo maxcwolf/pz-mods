@@ -49,6 +49,64 @@ function CharacterCreationMain:onOptionMouseDown(button, x, y)
     return originalOption(self, button, x, y)
 end
 
+--- Reads vanilla's saved builds, splitting each line at its first colon so a
+--- build that wears modded clothing with namespaced body locations (keys such
+--- as "alicesweaponsling:slingback") is no longer cut short.
+function CharacterCreationMain.readSavedOutfitFile()
+    local lines = {}
+    local reader = getFileReader(CharacterCreationMain.savefile, true)
+    if reader then
+        local line = reader:readLine()
+        while line ~= nil do
+            table.insert(lines, line)
+            line = reader:readLine()
+        end
+        reader:close()
+    end
+    return CSG_Builds.parseOutfitLines(lines)
+end
+
+--- Redraws the gear panel and the preview after the selection was replaced.
+local function refreshGear(screen)
+    if screen.csgPanel then
+        screen.csgPanel:rebuild()
+    end
+    CSG_Preview.refresh(screen)
+end
+
+local originalSaveBuild = CharacterCreationMain.saveBuildStep2
+--- Saves the current gear under the build name vanilla just saved.
+function CharacterCreationMain:saveBuildStep2(button, joypadData, param2)
+    originalSaveBuild(self, button, joypadData, param2)
+    if button.internal == "CANCEL" then
+        return
+    end
+    local name = button.parent and button.parent.entry and button.parent.entry:getText()
+    if name and name ~= "" then
+        CSG_State.saveBuild(name)
+    end
+end
+
+local originalLoadOutfit = CharacterCreationMain.loadOutfit
+--- Restores the gear saved with the build vanilla just loaded, when any.
+function CharacterCreationMain:loadOutfit(box)
+    originalLoadOutfit(self, box)
+    local name = box and box.options and box.options[box.selected]
+    if name and CSG_State.loadBuild(name) then
+        refreshGear(self)
+    end
+end
+
+local originalDeleteBuild = CharacterCreationMain.deleteBuildStep2
+--- Forgets the gear of the build vanilla just deleted.
+function CharacterCreationMain:deleteBuildStep2(button, joypadData)
+    local name = self.savedBuilds and self.savedBuilds.options[self.savedBuilds.selected]
+    originalDeleteBuild(self, button, joypadData)
+    if button.internal ~= "NO" and name then
+        CSG_State.deleteBuild(name)
+    end
+end
+
 local originalSetDesc = CharacterCreationAvatar.setSurvivorDesc
 --- Renders the chosen gear on the preview; falls back to the vanilla preview
 --- when nothing is chosen or the live-character path fails.

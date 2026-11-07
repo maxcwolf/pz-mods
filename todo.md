@@ -1,7 +1,8 @@
 # Todo
 
 - Run the game with the mod enabled and fix whatever the console reports.
-- Named presets (save/load several gear sets), like the vanilla outfit presets.
+- Gear for a build saved before the mod existed: offer to attach the current
+  gear to it from the panel instead of re-saving the build.
 - Offer non-weapon hand items (bags, flashlights) through the same dialog.
 - Icons in the bag dialog rows (script items expose getIcon).
 - Sandbox option to disable the panel or the "remember last selection" file.
