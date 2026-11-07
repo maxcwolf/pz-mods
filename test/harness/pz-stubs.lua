@@ -38,8 +38,14 @@ function Element:new(x, y, width, height)
 end
 function Element:initialise() self:createChildren() end
 function Element:createChildren() end
-function Element:instantiate() end
-function Element:addChild(c) table.insert(self.children, c); c.parent = self end
+--- Mirrors vanilla: each instantiate makes a new Java object, and addChild
+--- instantiates a child that has none yet and parents that object.
+function Element:instantiate() self.instantiations = (self.instantiations or 0) + 1; self.javaObject = { owner = self } end
+function Element:addChild(c)
+    if not c.javaObject then c:instantiate() end
+    c.attachedJavaObject = c.javaObject
+    table.insert(self.children, c); c.parent = self
+end
 function Element:removeChild(c) for i, v in ipairs(self.children) do if v == c then table.remove(self.children, i); return end end end
 function Element:setX(x) self.x = x end
 function Element:setY(y) self.y = y end

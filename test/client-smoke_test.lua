@@ -315,3 +315,14 @@ test("the panel's loaded tick box drives the option and saves it", function()
     panel.loadedTick:toggle(1)
     eq(CSG_State.selection.options.loaded, true)
 end)
+
+test("every panel widget draws with the Java object that is attached to the panel", function()
+    CSG_State.selection = CSG_Selection.new()
+    local screen = Stubs.screen(worn({ "Base.Belt2", "Belt" }, { "Base.Bag_ALICEpack", "Back" }))
+    local panel = panelOf(screen)
+    eq(#bagButtons(panel), 1)
+    for _, w in ipairs(panel.widgets) do
+        eq(w.javaObject, w.attachedJavaObject, (w.title or w.name or "widget") .. " java object")
+        eq(w.instantiations, 1, (w.title or w.name or "widget") .. " instantiated once")
+    end
+end)

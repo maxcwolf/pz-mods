@@ -43,8 +43,13 @@ function CSG_GearPanel:desc()
     return MainScreen.instance and MainScreen.instance.desc
 end
 
---- Adds a child and remembers it so the next rebuild can remove it.
+--- Initializes and adds a child in vanilla's order, and remembers it so the
+--- next rebuild can remove it. Instantiating after addChild would give the
+--- widget a second, unattached Java object: it then draws nowhere while the
+--- attached one still takes clicks.
 function CSG_GearPanel:track(widget)
+    widget:initialise()
+    widget:instantiate()
     self:addChild(widget)
     table.insert(self.widgets, widget)
     return widget
@@ -117,7 +122,6 @@ end
 --- Adds a left-aligned label and returns it.
 function CSG_GearPanel:addLabel(x, y, text, font)
     local label = self:track(ISLabel:new(x, y, BUTTON_HGT, text, 1, 1, 1, 1, font or UIFont.Small, true))
-    label:initialise()
     return label
 end
 
@@ -139,8 +143,6 @@ function CSG_GearPanel:addButton(x, y, title, onClick, arg)
     local width = getTextManager():MeasureStringX(UIFont.Small, title) + 16
     local button = self:track(ISButton:new(x, y, width, BUTTON_HGT, title, self))
     button:setOnClick(onClick, arg)
-    button:initialise()
-    button:instantiate()
     return button
 end
 
@@ -151,7 +153,6 @@ function CSG_GearPanel:addCombo(y, labelText, entries, selectedType, onChange, a
     local label = self:addLabel(0, y, labelText)
     label:setX(labelWidth - label:getWidth())
     local combo = self:track(ISComboBox:new(labelWidth + UI_BORDER_SPACING, y, self:comboWidth(labelWidth), BUTTON_HGT, self, onChange, arg))
-    combo:initialise()
     combo:setEditable(true)
     combo:addOptionWithData(getText("UI_CSG_None"), nil)
     for _, entry in ipairs(entries) do
@@ -180,8 +181,6 @@ function CSG_GearPanel:addContainer(y, container)
     title = title .. "  -  " .. tostring(count) .. " " .. getText("UI_CSG_Items") .. ", " .. string.format("%.1f", weight) .. " / " .. tostring(container.capacity)
     local button = self:track(ISButton:new(INDENT, y, self.width - INDENT, BUTTON_HGT + 6, title, self))
     button:setOnClick(CSG_GearPanel.onEditContents, container.key)
-    button:initialise()
-    button:instantiate()
     button.isBagButton = true
     button.containerKey = container.key
     if weight > container.capacity then
@@ -194,7 +193,6 @@ end
 function CSG_GearPanel:addLoadedTick(y)
     local tick = self:track(ISTickBox:new(0, y, self.width, FONT_HGT_SMALL + 2, "", self, CSG_GearPanel.onLoadedChanged))
     tick.autoWidth = true
-    tick:initialise()
     tick:addOption(getText("UI_CSG_LoadedAmmo"))
     tick:setSelected(1, CSG_State.selection.options.loaded == true)
     self.loadedTick = tick
@@ -218,8 +216,6 @@ function CSG_GearPanel:rebuild()
     y = y + FONT_HGT_MEDIUM + 5
     y = self:addLoadedTick(y)
     local rule = self:track(ISRect:new(0, y, self.width, 1, 1, 0.3, 0.3, 0.3))
-    rule:initialise()
-    rule:instantiate()
     y = y + UI_BORDER_SPACING
 
     if not CSG_State.catalogReady() then
