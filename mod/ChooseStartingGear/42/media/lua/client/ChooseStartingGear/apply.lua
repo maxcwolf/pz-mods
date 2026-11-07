@@ -57,6 +57,8 @@ end
 
 --- Fits the chosen weapon parts (partType -> part full type) to a firearm
 --- the way the vanilla upgrade action does; returns how many were fitted.
+--- Fit is decided by the part's MountOn list, not part:canAttach, because
+--- vanilla parts require the character to hold a screwdriver to attach.
 function Apply.attachParts(player, weapon, parts)
     if not instanceof(weapon, "HandWeapon") then
         return 0
@@ -68,8 +70,9 @@ function Apply.attachParts(player, weapon, parts)
     table.sort(partTypes)
     local fitted = 0
     for _, partType in ipairs(partTypes) do
-        local part = instanceItem(parts[partType])
-        if part and instanceof(part, "WeaponPart") and part:canAttach(player, weapon) then
+        local entry = CSG_State.entry(parts[partType])
+        local part = entry and CSG_Catalog.partFits(entry, weapon:getFullType()) and instanceItem(parts[partType])
+        if part and instanceof(part, "WeaponPart") then
             weapon:attachWeaponPart(player, part, true)
             fitted = fitted + 1
         else

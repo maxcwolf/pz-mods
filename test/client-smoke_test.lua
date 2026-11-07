@@ -344,6 +344,10 @@ test("firearm attachments are chosen per firearm on the panel and fitted at spaw
     eq(parts["Base.Pistol|Scope"] ~= nil, true, "scope combo for the pistol after choosing it")
     eq(#parts["Base.Pistol|Scope"].options, 3, "None + red dot + 2x scope")
     eq(#parts["Base.Pistol|Canon"].options, 2, "None + laser")
+    local redDot
+    for _, o in ipairs(parts["Base.Pistol|Scope"].options) do if o.data == "Base.RedDot" then redDot = o end end
+    eq(redDot.text, "Red Dot Sight  (UI_CSG_Effect_Sight 2-10, UI_CSG_Effect_AimingTime -10, UI_CSG_Effect_Weight +0.2)", "effects shown in the option itself")
+    eq(redDot.tooltip:find("UI_CSG_Effect_AimingTime -10", 1, true) ~= nil, true, "and in its tooltip")
     parts["Base.Pistol|Scope"]:pick("Base.RedDot")
     parts["Base.Pistol|Canon"]:pick("Base.Laser")
     eq(CSG_Selection.weaponParts(CSG_State.selection, "Base.Pistol").Scope, "Base.RedDot")

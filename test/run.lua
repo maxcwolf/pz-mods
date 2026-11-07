@@ -2,7 +2,7 @@
 --- file, and reports failures. Run with: luajit test/run.lua
 local root = arg[0]:match("^(.*)/test/run%.lua$") or "."
 local shared = root .. "/mod/ChooseStartingGear/42/media/lua/shared/ChooseStartingGear/"
-for _, name in ipairs({ "slot-logic", "catalog", "selection", "plan", "builds" }) do
+for _, name in ipairs({ "slot-logic", "catalog", "selection", "plan", "builds", "part-effects" }) do
     dofile(shared .. name .. ".lua")
 end
 
@@ -28,7 +28,7 @@ function eq(actual, expected, label)
     end
 end
 
-local files = { "slot-logic_test", "catalog_test", "selection_test", "plan_test", "builds_test", "client-smoke_test" }
+local files = { "slot-logic_test", "catalog_test", "selection_test", "plan_test", "builds_test", "part-effects_test", "client-smoke_test" }
 for _, file in ipairs(files) do
     dofile(root .. "/test/" .. file .. ".lua")
 end

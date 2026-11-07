@@ -59,6 +59,7 @@ function Catalog.buildEntries(rawItems)
                 isFirearm = raw.isFirearm == true,
                 partType = raw.partType,
                 mountOn = raw.mountOn,
+                partStats = raw.partStats,
             })
         end
     end

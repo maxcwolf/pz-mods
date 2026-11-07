@@ -158,6 +158,21 @@ function Runtime.rawItem(script)
         end
         if instanceof(inst, "WeaponPart") then
             raw.partType = inst:getPartType()
+            raw.partStats = {
+                hitChance = inst:getHitChance(),
+                maxRange = inst:getMaxRange(),
+                minSight = inst:getMinSightRange(),
+                maxSight = inst:getMaxSightRange(),
+                lowLight = inst:getLowLightBonus(),
+                aimingTime = inst:getAimingTime(),
+                recoilDelay = inst:getRecoilDelay(),
+                reloadTime = inst:getReloadTime(),
+                spread = inst:getSpreadModifier(),
+                damage = inst:getDamage(),
+                clipSize = inst:getClipSize(),
+                weightModifier = inst:getWeightModifier(),
+                light = inst:getLightDistance(),
+            }
             raw.mountOn = {}
             local mountOn = inst:getMountOn()
             if mountOn then

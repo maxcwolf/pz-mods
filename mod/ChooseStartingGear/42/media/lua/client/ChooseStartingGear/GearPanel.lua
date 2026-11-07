@@ -9,6 +9,7 @@ require "ISUI/ISComboBox"
 require "ISUI/ISRect"
 require "ISUI/ISTickBox"
 require "ChooseStartingGear/state"
+require "ChooseStartingGear/part-effects"
 require "ChooseStartingGear/BagContentsDialog"
 require "ChooseStartingGear/preview"
 
@@ -157,7 +158,7 @@ function CSG_GearPanel:addCombo(y, labelText, entries, selectedType, onChange, a
     combo:setEditable(true)
     combo:addOptionWithData(getText("UI_CSG_None"), nil)
     for _, entry in ipairs(entries) do
-        combo:addOptionWithData(entry.label, entry.fullType, entry.fullType)
+        combo:addOptionWithData(entry.optionText or entry.label, entry.fullType, entry.tooltip or entry.fullType)
     end
     combo.selected = 1
     if selectedType then
@@ -192,6 +193,33 @@ local function partTypeName(partType)
     return getTextOrNull("UI_CSG_Part_" .. partType) or getTextOrNull("Tooltip_weapon_" .. partType) or partType
 end
 
+--- Returns the display name of one effect key such as "HitChance".
+local function effectName(key)
+    return getText("UI_CSG_Effect_" .. key)
+end
+
+--- Returns combo options for weapon parts whose text and tooltip say what
+--- each part does.
+local function partOptions(entries, partType)
+    local description = getTextOrNull("Tooltip_" .. partType)
+    local options = {}
+    for _, entry in ipairs(entries) do
+        local summary = CSG_PartEffects.summary(entry.partStats, effectName)
+        local text = entry.label
+        if summary ~= "" then
+            text = text .. "  (" .. summary .. ")"
+        end
+        local tooltip = CSG_PartEffects.tooltip(entry.partStats, effectName, description)
+        table.insert(options, {
+            fullType = entry.fullType,
+            label = entry.label,
+            optionText = text,
+            tooltip = tooltip ~= "" and tooltip or nil,
+        })
+    end
+    return options
+end
+
 --- Adds, for every chosen firearm, one combo per part type that has parts
 --- fitting it; returns the next y.
 function CSG_GearPanel:addFirearmParts(y)
@@ -211,7 +239,8 @@ function CSG_GearPanel:addFirearmParts(y)
         local chosen = CSG_Selection.weaponParts(CSG_State.selection, firearm.fullType)
         for _, group in ipairs(groups) do
             local arg = { firearm = firearm.fullType, partType = group.partType }
-            local nextY, combo = self:addCombo(y, partTypeName(group.partType), group.entries, chosen[group.partType], CSG_GearPanel.onPartChanged, arg)
+            local options = partOptions(group.entries, group.partType)
+            local nextY, combo = self:addCombo(y, partTypeName(group.partType), options, chosen[group.partType], CSG_GearPanel.onPartChanged, arg)
             combo.csgPartKey = firearm.fullType .. "|" .. group.partType
             y = nextY
         end

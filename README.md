@@ -18,8 +18,11 @@ the clothing choices:
 - **Firearm attachments**: for every firearm you chose (in a hand, a slot or a
   bag), one dropdown per attachment type that has parts fitting it: scope,
   barrel (light, laser, choke), sling, recoil pad, plus any part types mods
-  add. The parts go on every copy of that firearm, fitted the same way the
-  vanilla upgrade action fits them.
+  add. Each option lists what the part changes (accuracy, sight range, aim
+  time, recoil delay, weight and so on), and hovering the dropdown shows the
+  game's description of that attachment type. The parts go on every copy of
+  that firearm, fitted the same way the vanilla upgrade action fits them, with
+  no screwdriver needed.
 - **Loaded ammo**: a tick box (on by default) makes every firearm and magazine
   you chose start fully loaded, including a round in the chamber.
 - **Saved builds**: the gear is saved, loaded and deleted together with the
@@ -56,6 +59,7 @@ mod/ChooseStartingGear/42/
     selection.lua    the chosen gear, its options and its text serialization
     plan.lua         selection + spawn-time facts -> operations and skips
     builds.lua       vanilla saved-builds parsing and the per-build gear file
+    part-effects.lua weapon part stat modifiers as readable text
   media/lua/client/ChooseStartingGear/   game-facing code
     runtime.lua      reads SurvivorDesc / IsoPlayer / script items into tables
     state.lua        current selection, incremental item catalog, save/load, per-build gear

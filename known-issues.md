@@ -53,8 +53,16 @@
   gets the same parts. Parts are not drawn on the character preview, and
   their weight is not counted in the bag weight shown on the panel.
 - Which parts fit comes from each part's `MountOn` list (empty means any
-  firearm). A part whose own Lua `canAttach` callback refuses the gun is
-  still listed, then skipped at spawn with a console line.
+  firearm). The part's own Lua `canAttach` callback is deliberately not used:
+  vanilla parts use it to demand a screwdriver, which a new character does
+  not carry. A modded part whose callback encodes a real compatibility rule
+  could therefore be fitted where the game would refuse it.
+- The "Aim time" value of a part is shown as the raw modifier. In 42.20 the
+  game saves a weapon's aiming time but nothing else reads it, so whether a
+  higher number is faster or slower is not known.
+- The open dropdown list cannot show a tooltip per row, so each option's
+  label carries a short effect summary; the full description shows when
+  hovering the closed dropdown.
 - Loaded ammo uses `setCurrentAmmoCount`, `setContainsClip` and
   `setRoundChambered`; whether every modded firearm honors those flags (some
   mods track magazines differently) is unverified.

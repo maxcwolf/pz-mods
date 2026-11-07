@@ -109,3 +109,8 @@ test("partsFor groups parts that mount on a firearm by part type", function()
     eq(#rifle[2].entries, 1, "only the 2x scope mounts on the rifle")
     eq(#C.partsFor(entries, "Base.Shotgun"), 1, "shotgun gets only the universal laser")
 end)
+
+test("buildEntries keeps weapon part stats", function()
+    local entries = C.buildEntries({ { fullType = "Base.Laser", displayName = "Laser", partType = "Canon", partStats = { hitChance = 5 } } })
+    eq(entries[1].partStats.hitChance, 5)
+end)

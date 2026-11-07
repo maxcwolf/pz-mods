@@ -33,5 +33,17 @@
     "UI_CSG_NoFirearms": "Choose a firearm for a hand, a slot or a bag to fit scopes, lights and other attachments.",
     "UI_CSG_PartsHint": "Attachments go on every copy of that firearm you start with.",
     "UI_CSG_NoParts": "No attachments fit this firearm.",
-    "UI_CSG_Part_Canon": "Barrel (light, laser, choke)"
+    "UI_CSG_Part_Canon": "Barrel (light, laser, choke)",
+    "UI_CSG_Effect_HitChance": "Accuracy",
+    "UI_CSG_Effect_Range": "Range",
+    "UI_CSG_Effect_Sight": "Sight range",
+    "UI_CSG_Effect_LowLight": "Low-light aim",
+    "UI_CSG_Effect_AimingTime": "Aim time",
+    "UI_CSG_Effect_RecoilDelay": "Recoil delay",
+    "UI_CSG_Effect_ReloadTime": "Reload time",
+    "UI_CSG_Effect_Spread": "Spread",
+    "UI_CSG_Effect_Damage": "Damage",
+    "UI_CSG_Effect_ClipSize": "Magazine size",
+    "UI_CSG_Effect_Light": "Light range",
+    "UI_CSG_Effect_Weight": "Weight"
 }

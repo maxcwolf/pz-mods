@@ -117,7 +117,7 @@ function ISComboBox:new(x, y, w, h, target, onChange, arg1)
     return o
 end
 function ISComboBox:setEditable(e) self.editable = e end
-function ISComboBox:addOptionWithData(text, data) table.insert(self.options, { text = text, data = data }) end
+function ISComboBox:addOptionWithData(text, data, tooltip) table.insert(self.options, { text = text, data = data, tooltip = tooltip }) end
 function ISComboBox:getOptionData(i) return self.options[i] and self.options[i].data end
 function ISComboBox:selectData(data) for i, o in ipairs(self.options) do if o.data == data then self.selected = i; return end end end
 function ISComboBox:pick(data) self:selectData(data); self.onChange(self.target, self, self.onChangeArgs[1]) end
@@ -178,7 +178,7 @@ local SCRIPT_ITEMS = {
     { fullType = "Moveables.Sofa", name = "Sofa" },
     { fullType = "Base.Pistol", name = "Pistol", weapon = true, ranged = true, maxAmmo = 15, externalMagazine = true, chamber = true, attachmentType = "Holster", weight = 1.5, category = "Weapon" },
     { fullType = "Base.9mmClip", name = "9mm Magazine", maxAmmo = 15, weight = 0.2, category = "Ammo" },
-    { fullType = "Base.RedDot", name = "Red Dot Sight", part = "Scope", mountOn = { "Base.Pistol" }, weight = 0.1, category = "WeaponPart" },
+    { fullType = "Base.RedDot", name = "Red Dot Sight", part = "Scope", mountOn = { "Base.Pistol" }, weight = 0.1, category = "WeaponPart", stats = { aimingTime = -10, minSight = 2, maxSight = 10, weightModifier = 0.2 } },
     { fullType = "Base.x2Scope", name = "2x Scope", part = "Scope", mountOn = { "Base.Pistol", "Base.AssaultRifle" }, weight = 0.3, category = "WeaponPart" },
     { fullType = "Base.Laser", name = "Laser", part = "Canon", mountOn = {}, weight = 0.1, category = "WeaponPart" },
     { fullType = "Base.Shotgun", name = "Shotgun", weapon = true, ranged = true, maxAmmo = 6, twoHanded = true, attachmentType = "Shotgun", weight = 4, category = "Weapon" },
@@ -209,6 +209,19 @@ function Stubs.item(fullType)
         ammoState = ammo,
         parts = {},
         getPartType = function() return def.part end,
+        getHitChance = function() return (def.stats or {}).hitChance or 0 end,
+        getMaxRange = function() return (def.stats or {}).maxRange or 0 end,
+        getMinSightRange = function() return (def.stats or {}).minSight or 0 end,
+        getMaxSightRange = function() return (def.stats or {}).maxSight or 0 end,
+        getLowLightBonus = function() return (def.stats or {}).lowLight or 0 end,
+        getAimingTime = function() return (def.stats or {}).aimingTime or 0 end,
+        getRecoilDelay = function() return (def.stats or {}).recoilDelay or 0 end,
+        getReloadTime = function() return (def.stats or {}).reloadTime or 0 end,
+        getSpreadModifier = function() return (def.stats or {}).spread or 0 end,
+        getDamage = function() return (def.stats or {}).damage or 0 end,
+        getClipSize = function() return (def.stats or {}).clipSize or 0 end,
+        getWeightModifier = function() return (def.stats or {}).weightModifier or 0 end,
+        getLightDistance = function() return (def.stats or {}).light or 0 end,
         getMountOn = function() return Stubs.javaList(def.mountOn or {}) end,
         contents = contents,
         getFullType = function() return def.fullType end,
@@ -232,12 +245,9 @@ function Stubs.item(fullType)
         setContainsClip = function(_, v) ammo.containsClip = v end,
         setRoundChambered = function(_, v) ammo.chambered = v end,
     }
-    --- Vanilla canAttach: an empty MountOn fits any weapon.
-    function item:canAttach(chr, weapon)
-        if #(def.mountOn or {}) == 0 then return true end
-        for _, t in ipairs(def.mountOn) do if t == weapon:getFullType() then return true end end
-        return false
-    end
+    --- Vanilla parts carry CanAttach = ItemCodeOnTest.hasScrewdriver, so
+    --- canAttach refuses a fresh character without a screwdriver.
+    function item:canAttach(chr, weapon) return false end
     function item:attachWeaponPart(chr, part, applyStats) self.parts[part:getPartType()] = { item = part, chr = chr, applyStats = applyStats, ammoWhenAttached = ammo.count } end
     return item
 end
