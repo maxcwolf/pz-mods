@@ -1,5 +1,6 @@
 --- Pure model of what the player chose: hand items, one item per attachment
---- slot, item stacks per worn container, and a few options such as whether
+--- slot, item stacks per worn container, the weapon parts fitted to each
+--- firearm type, and a few options such as whether
 --- firearms and magazines spawn loaded. Serializes to a tab-separated text
 --- format so the last selection can be remembered between games.
 local Selection = {}
@@ -18,7 +19,63 @@ end
 
 --- Creates an empty selection.
 function Selection.new()
-    return { hands = {}, attachments = {}, containers = {}, options = defaultOptions() }
+    return { hands = {}, attachments = {}, containers = {}, weaponParts = {}, options = defaultOptions() }
+end
+
+--- Sets or clears (with nil) the part of one part type fitted to every
+--- firearm of the given type.
+function Selection.setWeaponPart(sel, firearmType, partType, partFullType)
+    local parts = sel.weaponParts[firearmType]
+    if not parts then
+        if not partFullType then
+            return
+        end
+        parts = {}
+        sel.weaponParts[firearmType] = parts
+    end
+    parts[partType] = partFullType
+    for _ in pairs(parts) do
+        return
+    end
+    sel.weaponParts[firearmType] = nil
+end
+
+--- Returns partType -> part full type for one firearm type.
+function Selection.weaponParts(sel, firearmType)
+    return sel.weaponParts[firearmType] or {}
+end
+
+--- Returns every item type the selection gives the player, each once:
+--- hands, then attachments, then bag contents.
+function Selection.chosenTypes(sel)
+    local types, seen = {}, {}
+    local function add(fullType)
+        if fullType and not seen[fullType] then
+            seen[fullType] = true
+            table.insert(types, fullType)
+        end
+    end
+    add(sel.hands.primary)
+    add(sel.hands.secondary)
+    local slotTypes = {}
+    for slotType in pairs(sel.attachments) do
+        table.insert(slotTypes, slotType)
+    end
+    table.sort(slotTypes)
+    for _, slotType in ipairs(slotTypes) do
+        add(sel.attachments[slotType])
+    end
+    local keys = {}
+    for key in pairs(sel.containers) do
+        table.insert(keys, key)
+    end
+    table.sort(keys)
+    for _, key in ipairs(keys) do
+        for _, stack in ipairs(sel.containers[key]) do
+            add(stack.fullType)
+        end
+    end
+    return types
 end
 
 --- Sets a known option; unknown names are ignored.
@@ -149,6 +206,17 @@ function Selection.pruneUnknown(sel, isKnown)
             sel.containers[key] = nil
         end
     end
+    for firearmType, parts in pairs(sel.weaponParts) do
+        if not isKnown(firearmType) then
+            sel.weaponParts[firearmType] = nil
+        else
+            for partType, partFullType in pairs(parts) do
+                if not isKnown(partFullType) then
+                    Selection.setWeaponPart(sel, firearmType, partType, nil)
+                end
+            end
+        end
+    end
     return sel
 end
 
@@ -174,6 +242,12 @@ function Selection.serialize(sel)
     for _, key in ipairs(sortedKeys(sel.containers)) do
         for _, stack in ipairs(sel.containers[key]) do
             table.insert(lines, "container\t" .. key .. "\t" .. stack.fullType .. "\t" .. tostring(stack.count))
+        end
+    end
+    for _, firearmType in ipairs(sortedKeys(sel.weaponParts)) do
+        local parts = sel.weaponParts[firearmType]
+        for _, partType in ipairs(sortedKeys(parts)) do
+            table.insert(lines, "part\t" .. firearmType .. "\t" .. partType .. "\t" .. parts[partType])
         end
     end
     for _, name in ipairs(sortedKeys(sel.options)) do
@@ -207,6 +281,8 @@ function Selection.deserialize(text)
             if count > 0 then
                 Selection.addToContainer(sel, f[2], f[3], count)
             end
+        elseif f[1] == "part" and f[2] ~= "" and f[3] and f[3] ~= "" and f[4] and f[4] ~= "" then
+            Selection.setWeaponPart(sel, f[2], f[3], f[4])
         elseif f[1] == "option" and f[2] ~= "" and f[3] then
             Selection.setOption(sel, f[2], f[3] == "1")
         end

@@ -62,3 +62,12 @@ test("retrySelection keeps only the not-worn skips", function()
     eq(retry.hands.secondary, nil)
     eq(S.containerItems(retry, "Base.Bag#2")[1].count, 3, "unworn bag contents are retried")
 end)
+
+test("retrySelection keeps the original options and weapon parts", function()
+    local original = CSG_Selection.deserialize("attach\tAliceSling\tBase.Rifle\npart\tBase.Rifle\tScope\tBase.x2Scope\noption\tloaded\t0")
+    local plan = { skipped = { { kind = "attachment", slotType = "AliceSling", what = "Base.Rifle", notWorn = true } } }
+    local retry = P.retrySelection(plan, original)
+    eq(retry.attachments.AliceSling, "Base.Rifle")
+    eq(retry.options.loaded, false)
+    eq(CSG_Selection.weaponParts(retry, "Base.Rifle").Scope, "Base.x2Scope")
+end)

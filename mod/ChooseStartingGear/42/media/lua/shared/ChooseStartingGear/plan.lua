@@ -72,8 +72,12 @@ end
 
 --- Builds a selection holding only the operations that were skipped because
 --- their slot or bag was not worn yet, so they can be retried a little later.
-function Plan.retrySelection(plan)
+function Plan.retrySelection(plan, original)
     local sel = CSG_Selection.new()
+    if original then
+        sel.options = original.options
+        sel.weaponParts = original.weaponParts
+    end
     for _, skipped in ipairs(plan.skipped) do
         if skipped.notWorn then
             if skipped.kind == "attachment" then

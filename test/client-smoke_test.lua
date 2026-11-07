@@ -45,7 +45,7 @@ test("panel loads, builds catalog and lists slots for worn belt and sling", func
     CSG_State.selection = CSG_Selection.new()
     local screen = Stubs.screen(worn({ "Base.Belt2", "Belt" }, { "alice.Sling", "SlingFront" }, { "Base.Bag_ALICEpack", "Back" }, { "Base.Bag_Satchel", "Satchel" }))
     local panel = panelOf(screen)
-    eq(#CSG_State.entries, 13, "catalog size without hidden and moveables")
+    eq(#CSG_State.entries, 16, "catalog size without hidden and moveables")
     local c = combos(panel)
     eq(c.primary ~= nil, true, "primary hand combo")
     eq(c.SmallBeltLeft ~= nil, true, "belt left combo")
@@ -83,7 +83,7 @@ test("choices update the selection, the bag summary and the saved file", functio
     local dialog = CSG_BagContentsDialog.instance
     eq(dialog ~= nil, true, "dialog created")
     eq(dialog.bagKey, key)
-    eq(#dialog.catalogList.items, 13, "catalog lists everything with no filter")
+    eq(#dialog.catalogList.items, 16, "catalog lists everything with no filter")
     dialog.categoryCombo:selectData("Food")
     dialog:onFilterChanged()
     eq(#dialog.catalogList.items, 2, "category filter")
@@ -325,4 +325,52 @@ test("every panel widget draws with the Java object that is attached to the pane
         eq(w.javaObject, w.attachedJavaObject, (w.title or w.name or "widget") .. " java object")
         eq(w.instantiations, 1, (w.title or w.name or "widget") .. " instantiated once")
     end
+end)
+
+local function partCombos(panel)
+    local out = {}
+    for _, w in ipairs(panel.widgets) do if w.csgPartKey then out[w.csgPartKey] = w end end
+    return out
+end
+
+test("firearm attachments are chosen per firearm on the panel and fitted at spawn", function()
+    CSG_State.selection = CSG_Selection.new()
+    local screen = Stubs.screen(worn({ "Base.Bag_ALICEpack", "Back" }))
+    local panel = panelOf(screen)
+    eq(has(labels(panel), "UI_CSG_FirearmParts"), true, "section heading")
+    eq(has(labels(panel), "UI_CSG_NoFirearms"), true, "hint before any firearm is chosen")
+    combos(panel).primary:pick("Base.Pistol")
+    local parts = partCombos(panel)
+    eq(parts["Base.Pistol|Scope"] ~= nil, true, "scope combo for the pistol after choosing it")
+    eq(#parts["Base.Pistol|Scope"].options, 3, "None + red dot + 2x scope")
+    eq(#parts["Base.Pistol|Canon"].options, 2, "None + laser")
+    parts["Base.Pistol|Scope"]:pick("Base.RedDot")
+    parts["Base.Pistol|Canon"]:pick("Base.Laser")
+    eq(CSG_Selection.weaponParts(CSG_State.selection, "Base.Pistol").Scope, "Base.RedDot")
+    eq(Stubs.files["ChooseStartingGear_last.txt"]:find("part\tBase.Pistol\tScope\tBase.RedDot", 1, true) ~= nil, true, "saved")
+    CSG_Selection.addToContainer(CSG_State.selection, "Base.Bag_ALICEpack#1", "Base.Pistol", 2)
+    CSG_Selection.addToContainer(CSG_State.selection, "Base.Bag_ALICEpack#1", "Base.Shotgun", 1)
+    CSG_Selection.setWeaponPart(CSG_State.selection, "Base.Shotgun", "Scope", "Base.RedDot")
+    panel:rebuild()
+    local scope = partCombos(panel)["Base.Pistol|Scope"]
+    eq(scope:getOptionData(scope.selected), "Base.RedDot", "rebuild shows the chosen scope")
+    eq(partCombos(panel)["Base.Shotgun|Scope"], nil, "no scope row: nothing in the list mounts a scope on the shotgun")
+    eq(partCombos(panel)["Base.Shotgun|Canon"] ~= nil, true)
+
+    screen:onOptionMouseDown({ internal = "NEXT" })
+    local player = Stubs.player(worn({ "Base.Bag_ALICEpack", "Back" }))
+    Stubs.currentPlayer = player
+    Events.OnNewGame.fire(player, nil)
+    Events.OnTick.fire()
+    local held = player.primary
+    eq(held.parts.Scope.item:getFullType(), "Base.RedDot", "held pistol has its sight")
+    eq(held.parts.Canon.item:getFullType(), "Base.Laser", "and its laser")
+    eq(held.parts.Scope.chr, player, "attached by the player, like the vanilla upgrade action")
+    eq(held.parts.Scope.applyStats, true, "with the part's stat changes")
+    eq(held.parts.Scope.ammoWhenAttached, nil, "parts go on before the gun is loaded")
+    eq(held.ammoState.count, 15, "and the gun is still loaded")
+    local contents = player.worn[1].item.contents
+    eq(contents[1].parts.Scope.item:getFullType(), "Base.RedDot", "every pistol in the bag gets the parts")
+    eq(contents[2].parts.Scope.item:getFullType(), "Base.RedDot")
+    eq(contents[3].parts.Scope, nil, "a part that does not mount on the shotgun is skipped")
 end)

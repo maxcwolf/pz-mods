@@ -90,3 +90,22 @@ test("buildEntries keeps ammo facts and holdsAmmo reads them", function()
     eq(entries[3].isFirearm, true, "pistol")
     eq(C.holdsAmmo(entries[3]), true)
 end)
+
+test("partsFor groups parts that mount on a firearm by part type", function()
+    local entries = C.buildEntries({
+        { fullType = "Base.RedDot", displayName = "Red Dot", partType = "Scope", mountOn = { "Base.Pistol" } },
+        { fullType = "Base.x2Scope", displayName = "2x Scope", partType = "Scope", mountOn = { "Base.Pistol", "Base.Rifle" } },
+        { fullType = "Base.Laser", displayName = "Laser", partType = "Canon", mountOn = {} },
+        { fullType = "Base.Pistol", displayName = "Pistol", isFirearm = true },
+    })
+    local groups = C.partsFor(entries, "Base.Pistol")
+    eq(#groups, 2)
+    eq(groups[1].partType, "Canon", "sorted by part type")
+    eq(groups[1].entries[1].fullType, "Base.Laser", "empty MountOn fits any firearm")
+    eq(groups[2].partType, "Scope")
+    eq(#groups[2].entries, 2)
+    local rifle = C.partsFor(entries, "Base.Rifle")
+    eq(#rifle, 2)
+    eq(#rifle[2].entries, 1, "only the 2x scope mounts on the rifle")
+    eq(#C.partsFor(entries, "Base.Shotgun"), 1, "shotgun gets only the universal laser")
+end)

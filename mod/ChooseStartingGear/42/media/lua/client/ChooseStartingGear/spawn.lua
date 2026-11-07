@@ -17,7 +17,7 @@ local function applyOnce(player, selection, allowRetry)
         print("[ChooseStartingGear] failed to apply starting gear: " .. tostring(plan))
         return
     end
-    local retry = CSG_Plan.retrySelection(plan)
+    local retry = CSG_Plan.retrySelection(plan, selection)
     if allowRetry and not CSG_Selection.isEmpty(retry) then
         local ticks = 0
         local function onTick()

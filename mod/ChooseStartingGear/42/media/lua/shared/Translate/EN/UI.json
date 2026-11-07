@@ -28,5 +28,10 @@
     "UI_CSG_NoBags": "Pick a bag under Bags to choose what goes in it.",
     "UI_CSG_NoSlots": "Wear a belt, holster or sling above to unlock attachment slots.",
     "UI_CSG_Loading": "Reading item list...",
-    "UI_CSG_LoadedAmmo": "Firearms and magazines start fully loaded"
+    "UI_CSG_LoadedAmmo": "Firearms and magazines start fully loaded",
+    "UI_CSG_FirearmParts": "Firearm attachments",
+    "UI_CSG_NoFirearms": "Choose a firearm for a hand, a slot or a bag to fit scopes, lights and other attachments.",
+    "UI_CSG_PartsHint": "Attachments go on every copy of that firearm you start with.",
+    "UI_CSG_NoParts": "No attachments fit this firearm.",
+    "UI_CSG_Part_Canon": "Barrel (light, laser, choke)"
 }

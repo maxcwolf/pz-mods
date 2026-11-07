@@ -1,6 +1,7 @@
 --- The "Starting Gear" section that the mod appends under the clothing rows of
 --- the character creation screen: hand items, one combo per attachment slot
---- the worn clothing provides, and the contents of every worn bag.
+--- the worn clothing provides, the contents of every worn bag, and the weapon
+--- parts fitted to each chosen firearm.
 require "ISUI/ISPanel"
 require "ISUI/ISLabel"
 require "ISUI/ISButton"
@@ -147,7 +148,7 @@ function CSG_GearPanel:addButton(x, y, title, onClick, arg)
 end
 
 --- Adds a right-aligned label plus a filterable combo of "None" and the given
---- entries; returns the next y.
+--- entries; returns the next y and the combo.
 function CSG_GearPanel:addCombo(y, labelText, entries, selectedType, onChange, arg)
     local labelWidth = self:labelWidth()
     local label = self:addLabel(0, y, labelText)
@@ -162,7 +163,60 @@ function CSG_GearPanel:addCombo(y, labelText, entries, selectedType, onChange, a
     if selectedType then
         combo:selectData(selectedType)
     end
-    return y + BUTTON_HGT + UI_BORDER_SPACING
+    return y + BUTTON_HGT + UI_BORDER_SPACING, combo
+end
+
+--- Returns the catalog entries of every firearm the selection gives the player.
+local function chosenFirearms()
+    local firearms = {}
+    for _, fullType in ipairs(CSG_Selection.chosenTypes(CSG_State.selection)) do
+        local entry = CSG_State.entry(fullType)
+        if entry and entry.isFirearm then
+            table.insert(firearms, entry)
+        end
+    end
+    return firearms
+end
+
+--- Returns a string that changes whenever the set of chosen firearms changes.
+local function firearmSignature()
+    local parts = {}
+    for _, entry in ipairs(chosenFirearms()) do
+        table.insert(parts, entry.fullType)
+    end
+    return table.concat(parts, ",")
+end
+
+--- Returns the display name of a weapon part type such as "Scope".
+local function partTypeName(partType)
+    return getTextOrNull("UI_CSG_Part_" .. partType) or getTextOrNull("Tooltip_weapon_" .. partType) or partType
+end
+
+--- Adds, for every chosen firearm, one combo per part type that has parts
+--- fitting it; returns the next y.
+function CSG_GearPanel:addFirearmParts(y)
+    y = self:addSectionTitle(y, getText("UI_CSG_FirearmParts"))
+    local firearms = chosenFirearms()
+    if #firearms == 0 then
+        return self:addHint(y, getText("UI_CSG_NoFirearms"))
+    end
+    y = self:addHint(y, getText("UI_CSG_PartsHint"))
+    for _, firearm in ipairs(firearms) do
+        self:addLabel(INDENT, y, firearm.label)
+        y = y + BUTTON_HGT + 2
+        local groups = CSG_Catalog.partsFor(CSG_State.entries, firearm.fullType)
+        if #groups == 0 then
+            y = self:addHint(y, getText("UI_CSG_NoParts"))
+        end
+        local chosen = CSG_Selection.weaponParts(CSG_State.selection, firearm.fullType)
+        for _, group in ipairs(groups) do
+            local arg = { firearm = firearm.fullType, partType = group.partType }
+            local nextY, combo = self:addCombo(y, partTypeName(group.partType), group.entries, chosen[group.partType], CSG_GearPanel.onPartChanged, arg)
+            combo.csgPartKey = firearm.fullType .. "|" .. group.partType
+            y = nextY
+        end
+    end
+    return y
 end
 
 --- Adds one worn container as a full-width button that opens the contents
@@ -262,6 +316,9 @@ function CSG_GearPanel:rebuild()
     for _, container in ipairs(facts.containers) do
         y = self:addContainer(y, container)
     end
+
+    y = self:addFirearmParts(y)
+    self.firearms = firearmSignature()
     local dialog = CSG_BagContentsDialog.instance
     if dialog and dialog:getIsVisible() then
         dialog:setBags(facts.containers, dialog.bagKey)
@@ -300,10 +357,19 @@ function CSG_GearPanel:onBagChanged(combo, location)
     CSG_Preview.refresh(self.screen)
 end
 
+--- Rebuilds when a choice added or removed a firearm, so its attachment
+--- rows appear or go away.
+function CSG_GearPanel:rebuildIfFirearmsChanged()
+    if firearmSignature() ~= self.firearms then
+        self:rebuild()
+    end
+end
+
 --- Stores a hand choice.
 function CSG_GearPanel:onHandChanged(combo, hand)
     CSG_Selection.setHand(CSG_State.selection, hand, combo:getOptionData(combo.selected))
     CSG_State.save()
+    self:rebuildIfFirearmsChanged()
     CSG_Preview.refresh(self.screen)
 end
 
@@ -311,7 +377,14 @@ end
 function CSG_GearPanel:onAttachmentChanged(combo, slotType)
     CSG_Selection.setAttachment(CSG_State.selection, slotType, combo:getOptionData(combo.selected))
     CSG_State.save()
+    self:rebuildIfFirearmsChanged()
     CSG_Preview.refresh(self.screen)
+end
+
+--- Stores the weapon part chosen for one part type of one firearm type.
+function CSG_GearPanel:onPartChanged(combo, arg)
+    CSG_Selection.setWeaponPart(CSG_State.selection, arg.firearm, arg.partType, combo:getOptionData(combo.selected))
+    CSG_State.save()
 end
 
 --- Opens the bag contents dialog for one container.

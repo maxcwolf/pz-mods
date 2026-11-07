@@ -57,6 +57,8 @@ function Catalog.buildEntries(rawItems)
                 icon = raw.icon,
                 maxAmmo = raw.maxAmmo or 0,
                 isFirearm = raw.isFirearm == true,
+                partType = raw.partType,
+                mountOn = raw.mountOn,
             })
         end
     end
@@ -73,6 +75,43 @@ end
 --- Returns true when the item is a firearm or a magazine that holds rounds.
 function Catalog.holdsAmmo(entry)
     return (entry.maxAmmo or 0) > 0
+end
+
+--- Returns true when a weapon part fits a firearm type: its MountOn list
+--- names the firearm, or the list is empty, which vanilla treats as "any".
+function Catalog.partFits(entry, firearmType)
+    local mountOn = entry.mountOn or {}
+    if #mountOn == 0 then
+        return true
+    end
+    for _, fullType in ipairs(mountOn) do
+        if fullType == firearmType then
+            return true
+        end
+    end
+    return false
+end
+
+--- Returns the weapon parts that fit a firearm type, grouped as
+--- { partType, entries } and sorted by part type.
+function Catalog.partsFor(entries, firearmType)
+    local byType = {}
+    local order = {}
+    for _, entry in ipairs(entries) do
+        if entry.partType and entry.partType ~= "" and Catalog.partFits(entry, firearmType) then
+            if not byType[entry.partType] then
+                byType[entry.partType] = { partType = entry.partType, entries = {} }
+                table.insert(order, entry.partType)
+            end
+            table.insert(byType[entry.partType].entries, entry)
+        end
+    end
+    table.sort(order)
+    local groups = {}
+    for _, partType in ipairs(order) do
+        table.insert(groups, byType[partType])
+    end
+    return groups
 end
 
 --- Returns the entries whose label or full type contains every word of the

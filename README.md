@@ -15,6 +15,11 @@ the clothing choices:
   where you filter the whole item list by category and name, add any quantity,
   and adjust or remove stacks, with a running weight against the bag's capacity.
 - **Preview**: attached items show on the rotating character preview.
+- **Firearm attachments**: for every firearm you chose (in a hand, a slot or a
+  bag), one dropdown per attachment type that has parts fitting it: scope,
+  barrel (light, laser, choke), sling, recoil pad, plus any part types mods
+  add. The parts go on every copy of that firearm, fitted the same way the
+  vanilla upgrade action fits them.
 - **Loaded ammo**: a tick box (on by default) makes every firearm and magazine
   you chose start fully loaded, including a round in the chamber.
 - **Saved builds**: the gear is saved, loaded and deleted together with the

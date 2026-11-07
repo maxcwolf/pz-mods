@@ -156,6 +156,16 @@ function Runtime.rawItem(script)
             raw.twoHanded = inst:isTwoHandWeapon() or inst:isRequiresEquippedBothHands()
             raw.isFirearm = inst:isRanged()
         end
+        if instanceof(inst, "WeaponPart") then
+            raw.partType = inst:getPartType()
+            raw.mountOn = {}
+            local mountOn = inst:getMountOn()
+            if mountOn then
+                for i = 0, mountOn:size() - 1 do
+                    table.insert(raw.mountOn, mountOn:get(i))
+                end
+            end
+        end
     end
     return raw
 end

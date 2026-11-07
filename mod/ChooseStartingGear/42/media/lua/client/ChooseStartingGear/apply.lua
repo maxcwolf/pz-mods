@@ -55,10 +55,41 @@ function Apply.loadAmmo(item)
     return true
 end
 
---- Adds an item to an inventory and loads it when the selection asks for it.
-local function addItem(inventory, fullType, selection)
+--- Fits the chosen weapon parts (partType -> part full type) to a firearm
+--- the way the vanilla upgrade action does; returns how many were fitted.
+function Apply.attachParts(player, weapon, parts)
+    if not instanceof(weapon, "HandWeapon") then
+        return 0
+    end
+    local partTypes = {}
+    for partType in pairs(parts or {}) do
+        table.insert(partTypes, partType)
+    end
+    table.sort(partTypes)
+    local fitted = 0
+    for _, partType in ipairs(partTypes) do
+        local part = instanceItem(parts[partType])
+        if part and instanceof(part, "WeaponPart") and part:canAttach(player, weapon) then
+            weapon:attachWeaponPart(player, part, true)
+            fitted = fitted + 1
+        else
+            print("[ChooseStartingGear] skipped part " .. tostring(parts[partType]) .. ": does not fit " .. weapon:getFullType())
+        end
+    end
+    return fitted
+end
+
+--- Adds an item to an inventory, fits its weapon parts, then loads it when
+--- the selection asks for it (parts first, since some change the capacity).
+local function addItem(player, inventory, fullType, selection)
     local item = inventory:AddItem(fullType)
-    if item and selection.options and selection.options.loaded then
+    if not item then
+        return nil
+    end
+    if selection.weaponParts and selection.weaponParts[fullType] then
+        Apply.attachParts(player, item, selection.weaponParts[fullType])
+    end
+    if selection.options and selection.options.loaded then
         Apply.loadAmmo(item)
     end
     return item
@@ -117,7 +148,7 @@ function Apply.toPlayer(player, selection, wornTypes)
     for _, op in ipairs(plan.containers) do
         local inventory = containerByKey[op.key].item:getInventory()
         for _ = 1, op.count do
-            addItem(inventory, op.fullType, selection)
+            addItem(player, inventory, op.fullType, selection)
         end
     end
 
@@ -127,14 +158,14 @@ function Apply.toPlayer(player, selection, wornTypes)
     end
     local inventory = player:getInventory()
     for _, op in ipairs(plan.attachments) do
-        local item = addItem(inventory, op.fullType, selection)
+        local item = addItem(player, inventory, op.fullType, selection)
         if item then
             attach(player, hotbar, op, item)
         end
     end
 
     for _, op in ipairs(plan.hands) do
-        local item = addItem(inventory, op.fullType, selection)
+        local item = addItem(player, inventory, op.fullType, selection)
         if item then
             if op.hand == "primary" then
                 player:setPrimaryHandItem(item)

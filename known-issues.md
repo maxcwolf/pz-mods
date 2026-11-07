@@ -44,6 +44,17 @@
   contain one, so everything from that item on was dropped. The mod now
   replaces that reader with one that splits at the first colon. Builds saved
   before the fix are intact on disk and load correctly once the mod is on.
+- Sixth run (2026-11-06): the bag buttons were invisible but clickable. The
+  panel called `instantiate()` after `addChild`, which had already created
+  the Java object, so each button got a second, unattached object that drew
+  nowhere. The Clear button and the divider line had the same fault. Fixed by
+  building widgets in vanilla's order; a test now checks every panel widget.
+- Firearm attachments are chosen per firearm type, so every copy of a firearm
+  gets the same parts. Parts are not drawn on the character preview, and
+  their weight is not counted in the bag weight shown on the panel.
+- Which parts fit comes from each part's `MountOn` list (empty means any
+  firearm). A part whose own Lua `canAttach` callback refuses the gun is
+  still listed, then skipped at spawn with a console line.
 - Loaded ammo uses `setCurrentAmmoCount`, `setContainsClip` and
   `setRoundChambered`; whether every modded firearm honors those flags (some
   mods track magazines differently) is unverified.
