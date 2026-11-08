@@ -1,0 +1,45 @@
+VERSION = 1,
+
+option VehicleStorageCapacity.TrunkPercent
+{
+	type = integer,
+	min = 1,
+	max = 1000,
+	default = 100,
+
+	page = VehicleStorageCapacity,
+	translation = VehicleStorageCapacity_TrunkPercent,
+}
+
+option VehicleStorageCapacity.SeatPercent
+{
+	type = integer,
+	min = 1,
+	max = 1000,
+	default = 100,
+
+	page = VehicleStorageCapacity,
+	translation = VehicleStorageCapacity_SeatPercent,
+}
+
+option VehicleStorageCapacity.GloveBoxPercent
+{
+	type = integer,
+	min = 1,
+	max = 1000,
+	default = 100,
+
+	page = VehicleStorageCapacity,
+	translation = VehicleStorageCapacity_GloveBoxPercent,
+}
+
+option VehicleStorageCapacity.TrailerPercent
+{
+	type = integer,
+	min = 1,
+	max = 1000,
+	default = 100,
+
+	page = VehicleStorageCapacity,
+	translation = VehicleStorageCapacity_TrailerPercent,
+}

@@ -1,0 +1,6 @@
+name=Vehicle Storage Capacity
+id=VehicleStorageCapacity
+description=Set how much vehicles can carry in the sandbox settings when you create a game: trunks and cargo, seats, glove boxes and trailers each get their own percentage. Works with the game's own vehicles, KI5 vehicles, trailers and campers, and other vehicle mods without a per-mod list, and with saves already in progress. Fuel tanks and tires are not touched.
+modversion=0.1.0
+versionMin=42.20
+author=jabroni

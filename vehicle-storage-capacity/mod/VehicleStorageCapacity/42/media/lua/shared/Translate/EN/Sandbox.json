@@ -1,0 +1,11 @@
+{
+    "Sandbox_VehicleStorageCapacity": "Vehicle Storage Capacity",
+    "Sandbox_VehicleStorageCapacity_TrunkPercent": "Trunks and cargo, percent",
+    "Sandbox_VehicleStorageCapacity_TrunkPercent_tooltip": "Capacity of trunks, truck beds, van cargo areas, roof racks, side boxes and toolboxes, as a percent of normal. 100 is the game's value and 200 doubles it. A container never holds more than 1000, the game's limit. Applies to vehicles from any mod, including KI5.",
+    "Sandbox_VehicleStorageCapacity_SeatPercent": "Seats, percent",
+    "Sandbox_VehicleStorageCapacity_SeatPercent_tooltip": "Capacity of every seat, bed and stretcher in vehicles, trailers and campers, as a percent of normal. The game still holds a quarter as much while someone sits there.",
+    "Sandbox_VehicleStorageCapacity_GloveBoxPercent": "Glove boxes and consoles, percent",
+    "Sandbox_VehicleStorageCapacity_GloveBoxPercent_tooltip": "Capacity of glove boxes and center consoles, as a percent of normal.",
+    "Sandbox_VehicleStorageCapacity_TrailerPercent": "Trailers and campers, percent",
+    "Sandbox_VehicleStorageCapacity_TrailerPercent_tooltip": "Capacity of trailer beds, cargo boxes and camper cabinets, as a percent of normal. Seats and beds inside campers use the seat setting instead."
+}
