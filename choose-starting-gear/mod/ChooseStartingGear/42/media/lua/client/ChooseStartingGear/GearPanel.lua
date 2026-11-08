@@ -1,0 +1,435 @@
+--- The "Starting Gear" section that the mod appends under the clothing rows of
+--- the character creation screen: hand items, one combo per attachment slot
+--- the worn clothing provides, the contents of every worn bag, and the weapon
+--- parts fitted to each chosen firearm.
+require "ISUI/ISPanel"
+require "ISUI/ISLabel"
+require "ISUI/ISButton"
+require "ISUI/ISComboBox"
+require "ISUI/ISRect"
+require "ISUI/ISTickBox"
+require "ChooseStartingGear/state"
+require "ChooseStartingGear/part-effects"
+require "ChooseStartingGear/BagContentsDialog"
+require "ChooseStartingGear/preview"
+
+local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.Small)
+local FONT_HGT_MEDIUM = getTextManager():getFontHeight(UIFont.Medium)
+local UI_BORDER_SPACING = 10
+local BUTTON_HGT = FONT_HGT_SMALL + 6
+local MAX_COMBO_WIDTH = 300
+local INDENT = UI_BORDER_SPACING * 2
+
+CSG_GearPanel = ISPanel:derive("CSG_GearPanel")
+
+--- Creates the panel; `screen` is the CharacterCreationMain it belongs to.
+function CSG_GearPanel:new(x, y, width, screen)
+    local o = ISPanel:new(x, y, width, BUTTON_HGT)
+    setmetatable(o, self)
+    self.__index = self
+    o.screen = screen
+    o.widgets = {}
+    o.signature = nil
+    o:noBackground()
+    return o
+end
+
+--- Loads the remembered selection and starts reading the item list.
+function CSG_GearPanel:createChildren()
+    CSG_State.load()
+    CSG_State.beginCatalog()
+end
+
+--- Returns the SurvivorDesc the screen is editing.
+function CSG_GearPanel:desc()
+    return MainScreen.instance and MainScreen.instance.desc
+end
+
+--- Initializes and adds a child in vanilla's order, and remembers it so the
+--- next rebuild can remove it. Instantiating after addChild would give the
+--- widget a second, unattached Java object: it then draws nowhere while the
+--- attached one still takes clicks.
+function CSG_GearPanel:track(widget)
+    widget:initialise()
+    widget:instantiate()
+    self:addChild(widget)
+    table.insert(self.widgets, widget)
+    return widget
+end
+
+--- Removes every widget the last rebuild created.
+function CSG_GearPanel:clearWidgets()
+    for _, widget in ipairs(self.widgets) do
+        self:removeChild(widget)
+    end
+    self.widgets = {}
+    self.progressLabel = nil
+end
+
+--- Moves the panel under the clothing rows and forces a rebuild.
+function CSG_GearPanel:relayout(y)
+    self:setY(y)
+    if self.screen.clothingRect then
+        self:setWidth(self.screen.clothingRect:getWidth())
+    end
+    self:refreshIfNeeded(true)
+end
+
+--- Rebuilds when the worn items or the catalog state changed.
+function CSG_GearPanel:refreshIfNeeded(force)
+    local desc = self:desc()
+    if not desc then
+        return
+    end
+    local signature = CSG_Runtime.wornSignature(desc) .. (CSG_State.catalogReady() and "#ready" or "#loading")
+    if force or signature ~= self.signature then
+        self.signature = signature
+        self:rebuild()
+        if CSG_State.catalogReady() then
+            CSG_Preview.refresh(self.screen)
+        end
+    end
+end
+
+--- Advances the catalog build a little every frame and watches for changes.
+function CSG_GearPanel:update()
+    ISPanel.update(self)
+    if not CSG_State.catalogReady() then
+        CSG_State.stepCatalog()
+        if self.progressLabel then
+            local percent = math.floor(CSG_State.catalogProgress() * 100)
+            self.progressLabel:setName(getText("UI_CSG_Loading") .. " " .. tostring(percent) .. "%")
+        end
+    end
+    self:refreshIfNeeded(false)
+end
+
+--- Tells the scrolling clothing panel how tall its content is now.
+function CSG_GearPanel:updateParentScroll()
+    if self.parent and self.parent.setScrollHeight then
+        self.parent:setScrollHeight(self:getY() + self:getHeight())
+    end
+end
+
+--- Returns the width the vanilla labels use, so the rows line up.
+function CSG_GearPanel:labelWidth()
+    return self.screen.labelRight or 120
+end
+
+--- Returns a combo width that fits beside a label of the given width.
+function CSG_GearPanel:comboWidth(labelWidth)
+    return math.max(80, math.min(MAX_COMBO_WIDTH, self.width - labelWidth - UI_BORDER_SPACING))
+end
+
+--- Adds a left-aligned label and returns it.
+function CSG_GearPanel:addLabel(x, y, text, font)
+    local label = self:track(ISLabel:new(x, y, BUTTON_HGT, text, 1, 1, 1, 1, font or UIFont.Small, true))
+    return label
+end
+
+--- Adds a section heading and returns the next y.
+function CSG_GearPanel:addSectionTitle(y, text)
+    self:addLabel(0, y, text, UIFont.Small)
+    return y + BUTTON_HGT + 2
+end
+
+--- Adds a dim one-line hint and returns the next y.
+function CSG_GearPanel:addHint(y, text)
+    local label = self:addLabel(INDENT, y, text)
+    label.r, label.g, label.b = 0.7, 0.7, 0.7
+    return y + BUTTON_HGT + 2
+end
+
+--- Adds a button sized to its title and returns it.
+function CSG_GearPanel:addButton(x, y, title, onClick, arg)
+    local width = getTextManager():MeasureStringX(UIFont.Small, title) + 16
+    local button = self:track(ISButton:new(x, y, width, BUTTON_HGT, title, self))
+    button:setOnClick(onClick, arg)
+    return button
+end
+
+--- Adds a right-aligned label plus a filterable combo of "None" and the given
+--- entries; returns the next y and the combo.
+function CSG_GearPanel:addCombo(y, labelText, entries, selectedType, onChange, arg)
+    local labelWidth = self:labelWidth()
+    local label = self:addLabel(0, y, labelText)
+    label:setX(labelWidth - label:getWidth())
+    local combo = self:track(ISComboBox:new(labelWidth + UI_BORDER_SPACING, y, self:comboWidth(labelWidth), BUTTON_HGT, self, onChange, arg))
+    combo:setEditable(true)
+    combo:addOptionWithData(getText("UI_CSG_None"), nil)
+    for _, entry in ipairs(entries) do
+        combo:addOptionWithData(entry.optionText or entry.label, entry.fullType, entry.tooltip or entry.fullType)
+    end
+    combo.selected = 1
+    if selectedType then
+        combo:selectData(selectedType)
+    end
+    return y + BUTTON_HGT + UI_BORDER_SPACING, combo
+end
+
+--- Returns the catalog entries of every firearm the selection gives the player.
+local function chosenFirearms()
+    local firearms = {}
+    for _, fullType in ipairs(CSG_Selection.chosenTypes(CSG_State.selection)) do
+        local entry = CSG_State.entry(fullType)
+        if entry and entry.isFirearm then
+            table.insert(firearms, entry)
+        end
+    end
+    return firearms
+end
+
+--- Returns a string that changes whenever the set of chosen firearms changes.
+local function firearmSignature()
+    local parts = {}
+    for _, entry in ipairs(chosenFirearms()) do
+        table.insert(parts, entry.fullType)
+    end
+    return table.concat(parts, ",")
+end
+
+--- Returns the display name of a weapon part type such as "Scope".
+local function partTypeName(partType)
+    return getTextOrNull("UI_CSG_Part_" .. partType) or getTextOrNull("Tooltip_weapon_" .. partType) or partType
+end
+
+--- Returns the display name of one effect key such as "HitChance".
+local function effectName(key)
+    return getText("UI_CSG_Effect_" .. key)
+end
+
+--- Returns combo options for weapon parts whose text and tooltip say what
+--- each part does.
+local function partOptions(entries, partType)
+    local description = getTextOrNull("Tooltip_" .. partType)
+    local options = {}
+    for _, entry in ipairs(entries) do
+        local summary = CSG_PartEffects.summary(entry.partStats, effectName)
+        local text = entry.label
+        if summary ~= "" then
+            text = text .. "  (" .. summary .. ")"
+        end
+        local tooltip = CSG_PartEffects.tooltip(entry.partStats, effectName, description)
+        table.insert(options, {
+            fullType = entry.fullType,
+            label = entry.label,
+            optionText = text,
+            tooltip = tooltip ~= "" and tooltip or nil,
+        })
+    end
+    return options
+end
+
+--- Adds, for every chosen firearm, one combo per part type that has parts
+--- fitting it; returns the next y.
+function CSG_GearPanel:addFirearmParts(y)
+    y = self:addSectionTitle(y, getText("UI_CSG_FirearmParts"))
+    local firearms = chosenFirearms()
+    if #firearms == 0 then
+        return self:addHint(y, getText("UI_CSG_NoFirearms"))
+    end
+    y = self:addHint(y, getText("UI_CSG_PartsHint"))
+    for _, firearm in ipairs(firearms) do
+        self:addLabel(INDENT, y, firearm.label)
+        y = y + BUTTON_HGT + 2
+        local groups = CSG_Catalog.partsFor(CSG_State.entries, firearm.fullType)
+        if #groups == 0 then
+            y = self:addHint(y, getText("UI_CSG_NoParts"))
+        end
+        local chosen = CSG_Selection.weaponParts(CSG_State.selection, firearm.fullType)
+        for _, group in ipairs(groups) do
+            local arg = { firearm = firearm.fullType, partType = group.partType }
+            local options = partOptions(group.entries, group.partType)
+            local nextY, combo = self:addCombo(y, partTypeName(group.partType), options, chosen[group.partType], CSG_GearPanel.onPartChanged, arg)
+            combo.csgPartKey = firearm.fullType .. "|" .. group.partType
+            y = nextY
+        end
+    end
+    return y
+end
+
+--- Adds one worn container as a full-width button that opens the contents
+--- dialog, titled with the bag, what is in it and its weight; returns the next y.
+function CSG_GearPanel:addContainer(y, container)
+    local stacks = CSG_Selection.containerItems(CSG_State.selection, container.key)
+    local count = 0
+    for _, stack in ipairs(stacks) do
+        count = count + stack.count
+    end
+    local weight = CSG_Selection.containerWeight(CSG_State.selection, container.key, CSG_State.weightOf)
+    local title = container.name
+    if container.locationName then
+        title = title .. " (" .. container.locationName .. ")"
+    end
+    title = title .. "  -  " .. tostring(count) .. " " .. getText("UI_CSG_Items") .. ", " .. string.format("%.1f", weight) .. " / " .. tostring(container.capacity)
+    local button = self:track(ISButton:new(INDENT, y, self.width - INDENT, BUTTON_HGT + 6, title, self))
+    button:setOnClick(CSG_GearPanel.onEditContents, container.key)
+    button.isBagButton = true
+    button.containerKey = container.key
+    if weight > container.capacity then
+        button.textColor = { r = 1, g = 0.45, b = 0.45, a = 1 }
+    end
+    return y + BUTTON_HGT + 6 + 4
+end
+
+--- Adds the "firearms and magazines start loaded" tick box; returns the next y.
+function CSG_GearPanel:addLoadedTick(y)
+    local tick = self:track(ISTickBox:new(0, y, self.width, FONT_HGT_SMALL + 2, "", self, CSG_GearPanel.onLoadedChanged))
+    tick.autoWidth = true
+    tick:addOption(getText("UI_CSG_LoadedAmmo"))
+    tick:setSelected(1, CSG_State.selection.options.loaded == true)
+    self.loadedTick = tick
+    return y + FONT_HGT_SMALL + 2 + 4
+end
+
+--- Stores the loaded-ammo choice.
+function CSG_GearPanel:onLoadedChanged(index, selected)
+    CSG_Selection.setOption(CSG_State.selection, "loaded", selected == true)
+    CSG_State.save()
+end
+
+--- Rebuilds every row from the worn items, the catalog and the selection.
+function CSG_GearPanel:rebuild()
+    self:clearWidgets()
+    local y = UI_BORDER_SPACING
+
+    self:addLabel(0, y, getText("UI_CSG_Title"), UIFont.Medium)
+    local clear = self:addButton(0, y, getText("UI_CSG_Clear"), CSG_GearPanel.onClearAll)
+    clear:setX(self.width - clear:getWidth())
+    y = y + FONT_HGT_MEDIUM + 5
+    y = self:addLoadedTick(y)
+    local rule = self:track(ISRect:new(0, y, self.width, 1, 1, 0.3, 0.3, 0.3))
+    y = y + UI_BORDER_SPACING
+
+    if not CSG_State.catalogReady() then
+        self.progressLabel = self:addLabel(0, y, getText("UI_CSG_Loading"))
+        self:setHeight(y + BUTTON_HGT + UI_BORDER_SPACING)
+        self:updateParentScroll()
+        return
+    end
+
+    local selection = CSG_State.selection
+    local facts = CSG_Runtime.facts(self:desc())
+
+    y = self:addSectionTitle(y, getText("UI_CSG_Bags"))
+    local bagGroups = CSG_Catalog.bagLocations(CSG_State.entries)
+    if #bagGroups == 0 then
+        y = self:addHint(y, getText("UI_CSG_NoBagItems"))
+    end
+    for _, group in ipairs(bagGroups) do
+        local worn = self:wornBagType(group.location)
+        local name = getTextOrNull("UI_ClothingType_" .. group.location) or group.location
+        y = self:addCombo(y, name, group.entries, worn, CSG_GearPanel.onBagChanged, group.location)
+    end
+
+    y = self:addSectionTitle(y, getText("UI_CSG_Hands"))
+    y = self:addCombo(y, getText("UI_CSG_PrimaryHand"), CSG_State.weaponEntries, selection.hands.primary, CSG_GearPanel.onHandChanged, "primary")
+    y = self:addCombo(y, getText("UI_CSG_SecondaryHand"), CSG_State.weaponEntries, selection.hands.secondary, CSG_GearPanel.onHandChanged, "secondary")
+
+    y = self:addSectionTitle(y, getText("UI_CSG_Attachments"))
+    for _, slot in ipairs(facts.slots) do
+        local eligible = CSG_SlotLogic.eligibleItems(CSG_State.entries, slot.def, facts.replacements)
+        local name = getTextOrNull("IGUI_HotbarAttachment_" .. slot.type) or slot.name
+        y = self:addCombo(y, name, eligible, selection.attachments[slot.type], CSG_GearPanel.onAttachmentChanged, slot.type)
+    end
+    if #facts.slots <= 1 then
+        y = self:addHint(y, getText("UI_CSG_NoSlots"))
+    end
+
+    y = self:addSectionTitle(y, getText("UI_CSG_Containers"))
+    if #facts.containers == 0 then
+        y = self:addHint(y, getText("UI_CSG_NoBags"))
+    else
+        y = self:addHint(y, getText("UI_CSG_ClickBag"))
+    end
+    for _, container in ipairs(facts.containers) do
+        y = self:addContainer(y, container)
+    end
+
+    y = self:addFirearmParts(y)
+    self.firearms = firearmSignature()
+    local dialog = CSG_BagContentsDialog.instance
+    if dialog and dialog:getIsVisible() then
+        dialog:setBags(facts.containers, dialog.bagKey)
+    end
+
+    self:setHeight(y + UI_BORDER_SPACING)
+    self:updateParentScroll()
+end
+
+--- Returns the body-location object for a translation-name string.
+local function bodyLocation(location)
+    return ItemBodyLocation.get(ResourceLocation.of(location))
+end
+
+--- Returns the full type of the bag the desc wears at a location, or nil.
+function CSG_GearPanel:wornBagType(location)
+    local item = self:desc():getWornItem(bodyLocation(location))
+    return item and item:getFullType() or nil
+end
+
+--- Wears (or removes) a bag at a body location and tells the screen.
+function CSG_GearPanel:onBagChanged(combo, location)
+    local desc = self:desc()
+    local fullType = combo:getOptionData(combo.selected)
+    desc:setWornItem(bodyLocation(location), nil)
+    if fullType then
+        local item = instanceItem(fullType)
+        if item then
+            desc:setWornItem(bodyLocation(location), item)
+        end
+    end
+    if self.screen.updateSelectedClothingCombo then
+        self.screen:updateSelectedClothingCombo()
+    end
+    self:refreshIfNeeded(true)
+    CSG_Preview.refresh(self.screen)
+end
+
+--- Rebuilds when a choice added or removed a firearm, so its attachment
+--- rows appear or go away.
+function CSG_GearPanel:rebuildIfFirearmsChanged()
+    if firearmSignature() ~= self.firearms then
+        self:rebuild()
+    end
+end
+
+--- Stores a hand choice.
+function CSG_GearPanel:onHandChanged(combo, hand)
+    CSG_Selection.setHand(CSG_State.selection, hand, combo:getOptionData(combo.selected))
+    CSG_State.save()
+    self:rebuildIfFirearmsChanged()
+    CSG_Preview.refresh(self.screen)
+end
+
+--- Stores an attachment-slot choice.
+function CSG_GearPanel:onAttachmentChanged(combo, slotType)
+    CSG_Selection.setAttachment(CSG_State.selection, slotType, combo:getOptionData(combo.selected))
+    CSG_State.save()
+    self:rebuildIfFirearmsChanged()
+    CSG_Preview.refresh(self.screen)
+end
+
+--- Stores the weapon part chosen for one part type of one firearm type.
+function CSG_GearPanel:onPartChanged(combo, arg)
+    CSG_Selection.setWeaponPart(CSG_State.selection, arg.firearm, arg.partType, combo:getOptionData(combo.selected))
+    CSG_State.save()
+end
+
+--- Opens the bag contents dialog for one container.
+function CSG_GearPanel:onEditContents(button, key)
+    local facts = CSG_Runtime.facts(self:desc())
+    CSG_BagContentsDialog.open(facts.containers, key, self, CSG_GearPanel.onContentsChanged)
+end
+
+--- Redraws after the dialog changed a bag.
+function CSG_GearPanel:onContentsChanged()
+    self:rebuild()
+end
+
+--- Forgets every chosen item.
+function CSG_GearPanel:onClearAll()
+    CSG_State.reset()
+    self:rebuild()
+    CSG_Preview.refresh(self.screen)
+end
