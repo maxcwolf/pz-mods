@@ -1,0 +1,29 @@
+[b]Single player only. Build 42.[/b]
+
+Adds a Vehicle Storage page to the sandbox settings, with separate capacity percentages for trunks, seats, glove boxes and trailers. It scales whatever capacity the game works out for each part, so vanilla cars, KI5 vehicles and other vehicle mods all work without a per-mod list.
+
+[h2]Options[/h2]
+Each runs from 1 to 1000 percent. 100 is the game's normal value, 200 doubles it.
+[list]
+[*]Trunks and cargo: 100. Trunks, truck beds, van cargo areas, roof racks, side boxes, toolboxes, gun racks.
+[*]Seats: 100. Every seat, plus camper beds and stretchers.
+[*]Glove boxes and consoles: 100.
+[*]Trailers and campers: 100. Trailer beds, cargo boxes, camper cabinets.
+[/list]
+Fuel tanks, tires and other fluid containers aren't touched. Condition still counts the way it does in vanilla, so a damaged trunk holds less before the percentage is applied.
+
+[h2]Compatibility[/h2]
+[list]
+[*]Works in existing saves. Vehicles already in the world are resized the next time they load, and setting a category back to 100 restores the normal capacity.
+[*]A trailer is any vehicle whose script name contains "Trailer" or that has no engine.
+[*]Single player only.
+[/list]
+
+[h2]Known issues[/h2]
+[list]
+[*]The game caps every vehicle container at 1000, so very high percentages on big cargo areas stop there.
+[*]An occupied seat is resized only once it's free again.
+[*]A storage part sitting in your inventory, like a trunk lid, shows its normal capacity. It's scaled again once installed.
+[/list]
+
+Source and bug reports: [url=https://github.com/maxcwolf/pz-mods/tree/main/vehicle-storage-capacity]GitHub[/url]

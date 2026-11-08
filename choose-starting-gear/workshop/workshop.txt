@@ -1,0 +1,4 @@
+version=1
+title=jabroni's Starting Gear [B42] [SP]
+tags=Build 42;Items;QoL
+visibility=unlisted

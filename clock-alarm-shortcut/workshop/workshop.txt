@@ -1,0 +1,4 @@
+version=1
+title=jabroni's Alarm Shortcut [B42] [SP]
+tags=Build 42;Interface;QoL
+visibility=unlisted

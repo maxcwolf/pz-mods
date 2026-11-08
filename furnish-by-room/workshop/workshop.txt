@@ -1,0 +1,4 @@
+version=1
+title=jabroni's Room Furnisher [B42] [SP]
+tags=Build 42;Building;QoL
+visibility=unlisted

@@ -1,0 +1,4 @@
+version=1
+title=jabroni's A-Life Reputation Editor [B42] [SP]
+tags=Build 42;Interface
+visibility=unlisted

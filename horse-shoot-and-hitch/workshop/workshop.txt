@@ -1,0 +1,4 @@
+version=1
+title=jabroni's Horse Shooting & Hitching [B42] [SP]
+tags=Build 42;Animals;Weapons
+visibility=unlisted

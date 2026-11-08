@@ -1,0 +1,4 @@
+version=1
+title=jabroni's Face Mask Protection [B42] [SP]
+tags=Build 42;Clothing/Armor;Balance
+visibility=unlisted
