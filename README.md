@@ -28,6 +28,11 @@ Every mod folder follows the same shape:
   todo.md, known-issues.md
 ```
 
+## Steam Workshop
+
+None of these are on the Workshop yet. See
+[docs/steam-workshop-plan.md](docs/steam-workshop-plan.md).
+
 ## Development
 
 ```bash
