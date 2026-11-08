@@ -1,6 +1,6 @@
-name=Choose Starting Vehicle
+name=jabroni's Starting Vehicle
 id=ChooseStartingVehicle
-description=Pick the vehicle that waits near your spawn on the character creation screen: any KI5 vehicle you have installed, the game's own cars, or other mods' vehicles. Choose its paint and every add-on part (bullbars, armor, snorkels, roof racks, tires, brakes...), pack the trunk and glove box, hitch a trailer or camper, and save vehicles by name like character builds. Single player.
+description=Pick the vehicle that waits near your spawn on the character creation screen: any KI5 vehicle you have installed, the game's own cars, or other mods' vehicles. Choose its paint and every add-on part (bullbars, armor, snorkels, roof racks, tires, brakes...), pack the trunk and glove box, hitch a trailer or camper, and save vehicles by name like character builds. Single player only.
 modversion=0.1.0
 versionMin=42.20
 author=jabroni

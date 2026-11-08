@@ -1,7 +1,7 @@
-name=A-Life Reputation Editor
+name=jabroni's A-Life Reputation Editor
 id=ALifeRepEditor
 require=\ProjectALifeNPCs
-description=Fix or set your Project A-Life reputation from one small window. Undo a kill you didn't mean (the NPC who stepped into your shot at a zombie), nudge or jump your personal reputation to any level, and forgive or anger whole factions. Opens from the right-click menu or a small button on screen, and pauses the game while it's open.
+description=Fix or set your Project A-Life reputation from one small window. Undo a kill you didn't mean (the NPC who stepped into your shot at a zombie), nudge or jump your personal reputation to any level, and forgive or anger whole factions. Opens from the right-click menu or a small button on screen, and pauses the game while it's open. Single player only.
 modversion=0.1.0
 versionMin=42.21
 author=jabroni

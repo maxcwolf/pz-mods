@@ -1,5 +1,5 @@
 {
-    "Sandbox_VehicleStorageCapacity": "Vehicle Storage Capacity",
+    "Sandbox_VehicleStorageCapacity": "Vehicle Storage",
     "Sandbox_VehicleStorageCapacity_TrunkPercent": "Trunks and cargo, percent",
     "Sandbox_VehicleStorageCapacity_TrunkPercent_tooltip": "Capacity of trunks, truck beds, van cargo areas, roof racks, side boxes and toolboxes, as a percent of normal. 100 is the game's value and 200 doubles it. A container never holds more than 1000, the game's limit. Applies to vehicles from any mod, including KI5.",
     "Sandbox_VehicleStorageCapacity_SeatPercent": "Seats, percent",

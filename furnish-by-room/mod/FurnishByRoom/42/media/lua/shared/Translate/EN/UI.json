@@ -1,6 +1,6 @@
 {
-    "UI_FBR_Title": "Furnish by Room",
-    "UI_FBR_Menu": "Furnish by Room...",
+    "UI_FBR_Title": "Room Furnisher",
+    "UI_FBR_Menu": "Room Furnisher...",
     "UI_FBR_MenuRoom": "Furnish this %1...",
     "UI_FBR_YouAreIn": "You're standing in a %1, so it opened there.",
     "UI_FBR_PickRoom": "Pick a room, then click an item to place it.",
@@ -39,7 +39,7 @@
     "UI_FBR_Undone_place": "Undid placing",
     "UI_FBR_Undone_floor": "Undid floor paint",
     "UI_FBR_Undone_remove": "Put it back",
-    "UI_FBR_Option_Key": "Open Furnish by Room",
+    "UI_FBR_Option_Key": "Open Room Furnisher",
     "UI_FBR_Option_Layout": "Layout",
     "UI_FBR_Option_LayoutTip": "Catalog window: room tabs, filters, search and a grid of pictures. Bottom strip: eight items along the bottom of the screen.",
     "UI_FBR_Layout_catalog": "Catalog window",

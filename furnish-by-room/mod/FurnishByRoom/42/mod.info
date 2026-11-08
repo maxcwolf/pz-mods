@@ -1,6 +1,6 @@
-name=Furnish by Room
+name=jabroni's Room Furnisher
 id=FurnishByRoom
-description=A cheat for decorating. Press F7 (or right-click a room and choose Furnish this kitchen...) to pick a room type, then place its furniture and floors for free: kitchen appliances, counters and tile floors; beds, dressers and nightstands; couches, TVs and bookshelves; dining sets; bar stools and counters; workbenches and garage storage. Rotate with R, undo with Ctrl+Z. Choose between a catalog window and a bottom strip in Options > Mods. Single player.
+description=A cheat for decorating. Press F7 (or right-click a room and choose Furnish this kitchen...) to pick a room type, then place its furniture and floors for free: kitchen appliances, counters and tile floors; beds, dressers and nightstands; couches, TVs and bookshelves; dining sets; bar stools and counters; workbenches and garage storage. Rotate with R, undo with Ctrl+Z. Choose between a catalog window and a bottom strip in Options > Mods. Single player only.
 modversion=0.1.0
 versionMin=42.20
 author=jabroni

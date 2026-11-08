@@ -1,7 +1,7 @@
-name=Horse Mod: Mounted Shooting and Hitching
+name=jabroni's Horse Shooting & Hitching
 id=HorseShootAndHitch
 require=\Horse
-description=An add-on for the Horse mod. Aim and fire guns from the saddle, with a small accuracy penalty at a walk or trot and a bigger one at a gallop. Tie your horse to any fence, pole, railing or tree with its reins (or a rope if it has none) and it stays within a couple of tiles until you come back.
+description=An add-on for the Horse mod. Aim and fire guns from the saddle, with a small accuracy penalty at a walk or trot and a bigger one at a gallop. Tie your horse to any fence, pole, railing or tree with its reins (or a rope if it has none) and it stays within a couple of tiles until you come back. Single player only.
 modversion=0.1.0
 versionMin=42.20
 author=jabroni

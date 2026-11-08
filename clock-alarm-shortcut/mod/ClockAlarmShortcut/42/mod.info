@@ -1,6 +1,6 @@
-name=Clock Alarm Shortcut
+name=jabroni's Alarm Shortcut
 id=ClockAlarmShortcut
-description=Right-click the alarm bell on the watch display in the top right corner of the screen to open the Set Alarm Time dialog for the digital watch or alarm clock you are wearing or holding. Left-click still turns the alarm on and off as in vanilla.
+description=Right-click the alarm bell on the watch display in the top right corner of the screen to open the Set Alarm Time dialog for the digital watch or alarm clock you are wearing or holding. Left-click still turns the alarm on and off as in vanilla. Single player only.
 modversion=0.1.0
 versionMin=42.20
 author=jabroni

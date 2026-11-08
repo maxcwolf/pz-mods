@@ -1,5 +1,5 @@
 {
-    "Sandbox_ChooseStartingVehicle": "Choose Starting Vehicle",
+    "Sandbox_ChooseStartingVehicle": "Starting Vehicle",
     "Sandbox_ChooseStartingVehicle_Enabled": "Spawn the chosen vehicle",
     "Sandbox_ChooseStartingVehicle_Enabled_tooltip": "Parks the vehicle you built on the character creation screen near your spawn point when a new game starts.",
     "Sandbox_ChooseStartingVehicle_PartCondition": "Part condition, percent",
