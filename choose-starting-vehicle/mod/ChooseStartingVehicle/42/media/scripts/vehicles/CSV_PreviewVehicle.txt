@@ -1,0 +1,22 @@
+module Base
+{
+	/* The Starting Vehicle window's 3D view rebuilds this vehicle from the one
+	   being chosen and draws it. It is in no spawn zone and never spawns.
+	   No skins on purpose: the view paints the body through its model.
+	   See docs/decisions/0009-preview-slot-vehicle.md. */
+	vehicle CSV_PreviewVehicle
+	{
+		model
+		{
+			file = Vehicles_CarNormal_Burnt,
+			scale = 1.82,
+			offset = 0.0 0.3297 0.0,
+		}
+		extents = 0.8022 0.6593 2.6044,
+		mass = 500,
+		centerOfMassOffset = 0.0 0.3242 0.0,
+		shadowExtents = 0.8956 3.2143,
+		shadowOffset = 0.0 0.0,
+		physicsChassisShape = 0.8022 0.6593 2.6044,
+	}
+}

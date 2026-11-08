@@ -1,0 +1,19 @@
+{
+    "Sandbox_ChooseStartingVehicle": "Choose Starting Vehicle",
+    "Sandbox_ChooseStartingVehicle_Enabled": "Spawn the chosen vehicle",
+    "Sandbox_ChooseStartingVehicle_Enabled_tooltip": "Parks the vehicle you built on the character creation screen near your spawn point when a new game starts.",
+    "Sandbox_ChooseStartingVehicle_PartCondition": "Part condition, percent",
+    "Sandbox_ChooseStartingVehicle_PartCondition_tooltip": "Condition of every installed part of the vehicle and trailer. 100 is like new, with no rust.",
+    "Sandbox_ChooseStartingVehicle_FuelPercent": "Fuel, percent of tank",
+    "Sandbox_ChooseStartingVehicle_FuelPercent_tooltip": "How full the gas tank is.",
+    "Sandbox_ChooseStartingVehicle_BatteryPercent": "Battery charge, percent",
+    "Sandbox_ChooseStartingVehicle_BatteryPercent_tooltip": "How charged the battery is.",
+    "Sandbox_ChooseStartingVehicle_KeyInPocket": "Key in your pocket",
+    "Sandbox_ChooseStartingVehicle_KeyInPocket_tooltip": "Puts the key in your inventory. Turn it off to leave the key in the glove box instead.",
+    "Sandbox_ChooseStartingVehicle_SearchRadius": "Parking search radius (tiles)",
+    "Sandbox_ChooseStartingVehicle_SearchRadius_tooltip": "How far from your spawn point the mod looks for room to park. Roads and parking lots are tried first.",
+    "Sandbox_ChooseStartingVehicle_AllowTrailer": "Allow a trailer",
+    "Sandbox_ChooseStartingVehicle_AllowTrailer_tooltip": "Spawns the trailer or camper you chose, hitched behind the vehicle.",
+    "Sandbox_ChooseStartingVehicle_AllowCargo": "Allow cargo",
+    "Sandbox_ChooseStartingVehicle_AllowCargo_tooltip": "Packs the items you chose into the trunk, glove box and trailer."
+}

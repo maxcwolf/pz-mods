@@ -1,0 +1,81 @@
+VERSION = 1,
+
+option ChooseStartingVehicle.Enabled
+{
+	type = boolean,
+	default = true,
+
+	page = ChooseStartingVehicle,
+	translation = ChooseStartingVehicle_Enabled,
+}
+
+option ChooseStartingVehicle.PartCondition
+{
+	type = integer,
+	min = 1,
+	max = 100,
+	default = 100,
+
+	page = ChooseStartingVehicle,
+	translation = ChooseStartingVehicle_PartCondition,
+}
+
+option ChooseStartingVehicle.FuelPercent
+{
+	type = integer,
+	min = 0,
+	max = 100,
+	default = 100,
+
+	page = ChooseStartingVehicle,
+	translation = ChooseStartingVehicle_FuelPercent,
+}
+
+option ChooseStartingVehicle.BatteryPercent
+{
+	type = integer,
+	min = 0,
+	max = 100,
+	default = 100,
+
+	page = ChooseStartingVehicle,
+	translation = ChooseStartingVehicle_BatteryPercent,
+}
+
+option ChooseStartingVehicle.KeyInPocket
+{
+	type = boolean,
+	default = true,
+
+	page = ChooseStartingVehicle,
+	translation = ChooseStartingVehicle_KeyInPocket,
+}
+
+option ChooseStartingVehicle.SearchRadius
+{
+	type = integer,
+	min = 5,
+	max = 80,
+	default = 30,
+
+	page = ChooseStartingVehicle,
+	translation = ChooseStartingVehicle_SearchRadius,
+}
+
+option ChooseStartingVehicle.AllowTrailer
+{
+	type = boolean,
+	default = true,
+
+	page = ChooseStartingVehicle,
+	translation = ChooseStartingVehicle_AllowTrailer,
+}
+
+option ChooseStartingVehicle.AllowCargo
+{
+	type = boolean,
+	default = true,
+
+	page = ChooseStartingVehicle,
+	translation = ChooseStartingVehicle_AllowCargo,
+}
