@@ -1,0 +1,65 @@
+VERSION = 1,
+
+option HorseShootAndHitch.MountedShooting
+{
+	type = boolean,
+	default = true,
+
+	page = HorseShootAndHitch,
+	translation = HorseShootAndHitch_MountedShooting,
+}
+
+option HorseShootAndHitch.WalkPenalty
+{
+	type = integer,
+	min = 0,
+	max = 100,
+	default = 2,
+
+	page = HorseShootAndHitch,
+	translation = HorseShootAndHitch_WalkPenalty,
+}
+
+option HorseShootAndHitch.TrotPenalty
+{
+	type = integer,
+	min = 0,
+	max = 100,
+	default = 5,
+
+	page = HorseShootAndHitch,
+	translation = HorseShootAndHitch_TrotPenalty,
+}
+
+option HorseShootAndHitch.GallopPenalty
+{
+	type = integer,
+	min = 0,
+	max = 100,
+	default = 20,
+
+	page = HorseShootAndHitch,
+	translation = HorseShootAndHitch_GallopPenalty,
+}
+
+option HorseShootAndHitch.AimArc
+{
+	type = integer,
+	min = 30,
+	max = 180,
+	default = 180,
+
+	page = HorseShootAndHitch,
+	translation = HorseShootAndHitch_AimArc,
+}
+
+option HorseShootAndHitch.TieRadius
+{
+	type = integer,
+	min = 1,
+	max = 10,
+	default = 2,
+
+	page = HorseShootAndHitch,
+	translation = HorseShootAndHitch_TieRadius,
+}

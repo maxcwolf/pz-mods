@@ -1,0 +1,15 @@
+{
+    "Sandbox_HorseShootAndHitch": "Horse Shooting and Hitching",
+    "Sandbox_HorseShootAndHitch_MountedShooting": "Shooting from the saddle",
+    "Sandbox_HorseShootAndHitch_MountedShooting_tooltip": "Lets a rider aim and fire guns while mounted.",
+    "Sandbox_HorseShootAndHitch_WalkPenalty": "Hit chance penalty at a walk",
+    "Sandbox_HorseShootAndHitch_WalkPenalty_tooltip": "Percentage points taken off a gun's hit chance while the horse walks. Standing still has no penalty.",
+    "Sandbox_HorseShootAndHitch_TrotPenalty": "Hit chance penalty at a trot",
+    "Sandbox_HorseShootAndHitch_TrotPenalty_tooltip": "Percentage points taken off a gun's hit chance while the horse trots.",
+    "Sandbox_HorseShootAndHitch_GallopPenalty": "Hit chance penalty at a gallop",
+    "Sandbox_HorseShootAndHitch_GallopPenalty_tooltip": "Percentage points taken off a gun's hit chance while the horse gallops.",
+    "Sandbox_HorseShootAndHitch_AimArc": "Shooting arc (degrees each side)",
+    "Sandbox_HorseShootAndHitch_AimArc_tooltip": "How far to either side of the horse's heading the rider can shoot. 180 lets you shoot in every direction, including straight behind; 90 limits you to the front half.",
+    "Sandbox_HorseShootAndHitch_TieRadius": "Tied horse range (tiles)",
+    "Sandbox_HorseShootAndHitch_TieRadius_tooltip": "How far a tied horse can wander from its fence, pole or tree."
+}
