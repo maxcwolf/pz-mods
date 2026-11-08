@@ -1,0 +1,23 @@
+{
+    "UI_ALifeRepEditor_Title": "A-Life Reputation",
+    "UI_ALifeRepEditor_Nudge": "Adjust",
+    "UI_ALifeRepEditor_SetLevel": "Set level",
+    "UI_ALifeRepEditor_Score": "Score %1 (range %2 to %3)",
+    "UI_ALifeRepEditor_PersonalOff": "Personal reputation is turned off in this world's A-Life settings.",
+    "UI_ALifeRepEditor_Kills": "Recent kills",
+    "UI_ALifeRepEditor_KillsHint": "Undo a kill you didn't mean, like an NPC who stepped into your shot at a zombie.",
+    "UI_ALifeRepEditor_NoKills": "No NPC kills recorded yet. Kills show up here from now on.",
+    "UI_ALifeRepEditor_Undo": "Undo",
+    "UI_ALifeRepEditor_Undone": "undone",
+    "UI_ALifeRepEditor_Factions": "Factions",
+    "UI_ALifeRepEditor_ForgiveAll": "Forgive everyone",
+    "UI_ALifeRepEditor_Forgive": "Forgive",
+    "UI_ALifeRepEditor_Hostile": "Make hostile",
+    "UI_ALifeRepEditor_Grudges": "%1 holding a grudge",
+    "UI_ALifeRepEditor_Close": "Close",
+    "UI_ALifeRepEditor_Paused": "The game is paused while this window is open.",
+    "UI_ALifeRepEditor_Loading": "Loading...",
+    "UI_ALifeRepEditor_Hud": "Rep: %1",
+    "UI_ALifeRepEditor_HudPlain": "Reputation",
+    "UI_ALifeRepEditor_HudHide": "Hide this button"
+}

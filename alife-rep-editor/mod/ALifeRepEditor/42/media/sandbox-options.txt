@@ -1,0 +1,10 @@
+VERSION = 1,
+
+option ALifeRepEditor.AllowEveryone
+{
+	type = boolean,
+	default = false,
+
+	page = ALifeRepEditor,
+	translation = ALifeRepEditor_AllowEveryone,
+}

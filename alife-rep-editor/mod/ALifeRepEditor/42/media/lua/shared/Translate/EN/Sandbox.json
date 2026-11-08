@@ -1,0 +1,5 @@
+{
+    "Sandbox_ALifeRepEditor": "A-Life Reputation Editor",
+    "Sandbox_ALifeRepEditor_AllowEveryone": "Everyone can edit reputation",
+    "Sandbox_ALifeRepEditor_AllowEveryone_tooltip": "Multiplayer only. When off, only admins and moderators can use the reputation editor. Single player can always use it."
+}
