@@ -1,0 +1,6 @@
+name=Face Covering Protection
+id=FaceCoveringProtection
+description=Cloth face coverings (bandanas, shemaghs, balaclavas, dust and surgical masks, and cloth masks added by other mods) and gas masks or respirators with a filter fitted cut the sickness you get from nearby corpses and zombies by at least 50%. The minimum is a sandbox option.
+modversion=0.1.0
+versionMin=42.20
+author=jabroni

@@ -1,0 +1,5 @@
+{
+    "Sandbox_FaceCoveringProtection": "Face Covering Protection",
+    "Sandbox_FaceCoveringProtection_MinimumDefense": "Minimum protection (%)",
+    "Sandbox_FaceCoveringProtection_MinimumDefense_tooltip": "Cloth face coverings, and gas masks or respirators with a filter fitted (even a spent one), reduce the sickness from nearby corpses and zombies by at least this much. Coverings that already protect more keep their own value. Set to 0 to turn the mod off."
+}
