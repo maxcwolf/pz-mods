@@ -1,0 +1,6 @@
+name=Base Blueprints
+id=BaseBlueprints
+description=Claim a building as your base and every tile you change is highlighted: furniture placed, moved or removed, floors, walls, paint. Save the changes as a blueprint, then apply it to that building in any new game, either automatically at the start or from the Base Blueprints window whenever you like. Container contents are left behind unless you choose to save them. Single player.
+modversion=0.1.0
+versionMin=42.20
+author=jabroni

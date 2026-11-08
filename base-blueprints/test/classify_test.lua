@@ -1,0 +1,25 @@
+local Classify = require("BaseBlueprints/classify")
+
+test("classify: reads the class from the game's toString", function()
+    -- IsoObject.toString is name + sprite names + Object.toString.
+    eq(Classify.fromToString("nullfixtures_doors_01_12fixtures_doors_01_12zombie.iso.objects.IsoDoor@6d1e7682"), "IsoDoor")
+    eq(Classify.fromToString("Fridgeappliances_refrigeration_01_0appliances_refrigeration_01_0zombie.iso.IsoObject@1a"), "IsoObject")
+    eq(Classify.fromToString("no class here"), nil)
+    eq(Classify.fromToString(nil), nil)
+end)
+
+test("classify: nature sprites and excluded classes", function()
+    ok(Classify.isNature("e_newgrass_1_12"), "erosion grass")
+    ok(Classify.isNature("f_wallvines_1_40"), "vines")
+    ok(Classify.isNature("d_wallcracks_1_3"), "cracks")
+    ok(not Classify.isNature("fixtures_doors_01_12"), "fixtures are not nature")
+    ok(not Classify.isNature("floors_exterior_natural_01_0"), "floors are not nature")
+    ok(Classify.isExcluded("IsoWorldInventoryObject"))
+    ok(Classify.isExcluded("IsoTree"))
+    ok(not Classify.isExcluded("IsoDoor"))
+end)
+
+test("classify: sheet strips the tile number", function()
+    eq(Classify.sheet("fixtures_doors_01_12"), "fixtures_doors_01")
+    eq(Classify.sheet("plain"), "plain")
+end)

@@ -1,0 +1,82 @@
+local Fake = require("fake-game")
+
+--- Loads the capture module against a fresh fake world.
+local function setup()
+    local world = Fake.newWorld()
+    freshModules()
+    return world, require("BaseBlueprints/capture")
+end
+
+test("capture: records floor, walls, furniture and doors in order", function()
+    local world, Capture = setup()
+    world.put(1, 1, 0, "IsoObject", "floors_interior_tilesandwood_01_0", { floor = true })
+    world.put(1, 1, 0, "IsoObject", "walls_interior_house_01_0")
+    world.put(1, 1, 0, "IsoDoor", "fixtures_doors_01_2", { north = true })
+    local couch = world.put(1, 1, 0, "IsoObject", "furniture_seating_indoor_01_0")
+    couch.yOffset = 12
+    local records, objects = Capture.square(world.square(1, 1, 0))
+    eq(#records, 4)
+    eq(records[1].floor, true)
+    eq(records[3].cls, "IsoDoor")
+    eq(records[3].north, true)
+    eq(records[4].yOffset, 12)
+    eq(objects[4], couch)
+end)
+
+test("capture: leaves out nature, loose items, trees and grass", function()
+    local world, Capture = setup()
+    world.spriteFlags["blends_natural_01_64"] = { canBeRemoved = true }
+    world.put(2, 2, 0, "IsoObject", "blends_natural_01_16", { floor = true })
+    world.put(2, 2, 0, "IsoObject", "e_newgrass_1_12")
+    world.put(2, 2, 0, "IsoObject", "blends_natural_01_64")
+    world.put(2, 2, 0, "IsoTree", "e_americanholly_1_3")
+    world.put(2, 2, 0, "IsoWorldInventoryObject", "Item_Axe")
+    local wall = world.put(2, 2, 0, "IsoObject", "walls_exterior_house_01_0")
+    wall.attached = { "f_wallvines_1_40", "walls_decoration_01_3" }
+    local records = Capture.square(world.square(2, 2, 0))
+    eq(#records, 2, "floor and wall only")
+    eq(#records[2].attached, 1)
+    eq(records[2].attached[1], "walls_decoration_01_3")
+end)
+
+test("capture: contents only when asked, thumpables keep their settings", function()
+    local world, Capture = setup()
+    world.spriteFlags["carpentry_01_16"] = { container = "crate" }
+    local crate = world.put(3, 3, 0, "IsoThumpable", "carpentry_01_16")
+    crate.thump = { blockAll = true, maxHealth = 800, health = 650 }
+    crate.name = "Tools"
+    crate.containers[1]:AddItems("Base.Hammer", 2)
+    crate.containers[1]:AddItems("Base.Nails", 1)
+    local plain = Capture.square(world.square(3, 3, 0))
+    eq(plain[1].containers, nil)
+    eq(plain[1].thump.blockAll, true)
+    eq(plain[1].thump.health, 650)
+    eq(plain[1].name, "Tools")
+    local full = Capture.square(world.square(3, 3, 0), { contents = true })
+    eq(full[1].containers[1].type, "crate")
+    eq(full[1].containers[1].items[1].t, "Base.Hammer")
+    eq(full[1].containers[1].items[1].n, 2)
+end)
+
+test("capture: signatures skip unloaded columns and empty squares", function()
+    local world, Capture = setup()
+    world.put(0, 0, 0, "IsoObject", "floor_1", { floor = true })
+    world.setLoaded(1, 0, true)
+    local area = { x1 = 0, y1 = 0, x2 = 2, y2 = 0, z1 = 0, z2 = 0 }
+    local sigs, unknown, count = Capture.signatures(area)
+    ok(sigs["0,0,0"], "floor square")
+    eq(sigs["1,0,0"], nil, "empty square not stored")
+    eq(count, 1)
+    ok(unknown["2,0,0"])
+    local squares = Capture.records(area)
+    eq(#squares["1,0,0"], 0, "empty loaded square recorded as empty")
+    eq(squares["2,0,0"], nil)
+end)
+
+test("capture: classOf falls back to instanceof when tostring has no class", function()
+    local _, Capture = setup()
+    local odd = setmetatable({ cls = "IsoDoor" }, { __tostring = function() return "weird" end })
+    eq(Capture.classOf(odd), "IsoDoor")
+    local unknown = setmetatable({ cls = "Nope" }, { __tostring = function() return "weird" end })
+    eq(Capture.classOf(unknown), "IsoObject")
+end)
