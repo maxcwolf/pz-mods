@@ -38,16 +38,31 @@ These facts come from PZwiki
   Workshop staging folder and a subscribed copy. Only one can be present
   when you play.
 
+The game's own uploader code (`SteamWorkshopItem` and
+`WorkshopSubmitScreen.lua`, 42.21) confirms the rest:
+
+- `tags=` is a ";"-separated list. The allowed tags come from the game's
+  `media/WorkshopTags.txt`: Build 40/41/42, Multiplayer, and topic tags
+  such as QoL, Vehicles and Building. There is no single-player tag.
+- `visibility=` is written as a word: `public`, `friendsOnly`, `private`
+  or `unlisted`.
+- The uploader refuses `.exe .dll .bat .app .dylib .sh .so .zip` files.
+  `Contents/` may only hold `mods/`, `buildings/` or `creative/`.
+- It checks the preview's file size, dimensions and format. A 512x512
+  8-bit RGB PNG passes.
+
 ## What's missing today
 
 | Need | Status |
 | --- | --- |
 | `author=jabroni` in mod.info | Done in all nine |
-| In-game test pass | Only Choose Starting Gear has run in game (and its preview still fails). The other eight are untested. |
-| `poster.png` (shown in the in-game mod list) and `poster=` line in mod.info | None of the nine |
-| `preview.png` (Workshop thumbnail) | None |
-| Workshop title, description (Steam BBCode), tags | None |
-| Staging script from repo layout to Workshop layout | None |
+| "jabroni's" names, "Single player only." in mod.info | Done ([ADR 0002](decisions/0002-names-tags-and-thumbnails.md)) |
+| Workshop title, tags, visibility (`workshop/workshop.txt`) | Done, all start as Unlisted |
+| Workshop description (`workshop/description.bbcode`) | Drafted for all nine. Reread each one after the in-game test. |
+| Thumbnail and poster maker, staging, Workshop id tools | Done (`tools/workshop/cli.py`) |
+| In-game test pass | Only Starting Gear has run in game, and its character preview still fails. The other eight haven't run in game. |
+| `workshop/screenshot.png` per mod | None yet. You take these in game. |
+| `preview.png` and `poster.png` | Made from the screenshots with `cli.py preview` |
 | Steam account set up to publish | Not checked |
 
 ## Plan
@@ -62,7 +77,13 @@ These facts come from PZwiki
 - Confirm the Steam profile name shows as jabroni. Steam lists the
   uploading account as the item's author, whatever mod.info says.
 
-### 2. Repo changes (Claude can do these)
+### 2. Repo changes (done 2026-11-07, except the per-mod README checklist)
+
+Built differently from the original sketch: one Python CLI,
+`tools/workshop/cli.py`, does `check`, `preview`, `stage` and
+`collect-id`, with tests in `tools/workshop/tests`. The art follows
+canvas Option A: a real screenshot over a black name bar. The sketch
+below is kept for reference.
 
 1. **Per-mod `workshop/` folder**, not loaded by the game:
    - `workshop/workshop.txt`: title, tags, visibility, and the `id` once
@@ -103,31 +124,34 @@ breaks. Nothing should go up public before it has run in game at least
 once, in a fresh save and in an existing save. Suggested order, simplest
 first, so the pipeline gets proven on low-risk mods:
 
-1. Clock Alarm Shortcut
-2. Face Covering Protection
-3. Vehicle Storage Capacity
-4. Choose Starting Gear (fix the preview first)
-5. Furnish by Room
-6. Choose Starting Vehicle
+1. Alarm Shortcut
+2. Face Mask Protection
+3. Vehicle Storage
+4. Starting Gear (fix the preview first)
+5. Room Furnisher
+6. Starting Vehicle
 7. Base Blueprints
-8. Horse Mod: Mounted Shooting and Hitching (needs the Horse mod,
+8. Horse Shooting & Hitching (needs the Horse mod,
    Workshop 3661336777)
 9. A-Life Reputation Editor (needs Project A-Life, Workshop 3803984183)
 
 ### 4. First upload of each mod (unlisted)
 
-1. `scripts/stage-workshop.sh <mod>`, then launch the game.
-2. In **Workshop → Create and update items**, pick the item, check the
-   title, tags (pick the Build 42 tag the uploader offers) and preview,
-   set visibility to **Unlisted**, and upload.
-3. `scripts/collect-workshop-id.sh <mod>` and commit.
-4. Smoke-test the real Workshop copy. Delete the staged folder and the
+1. Take a screenshot in game that shows the mod working. Save it as
+   `<mod>/workshop/screenshot.png`, then run
+   `python3 tools/workshop/cli.py preview <mod>`.
+2. `python3 tools/workshop/cli.py stage <mod>`, then launch the game.
+3. In **Workshop → Create and update items**, pick the item. Check the
+   title, the tags (Build 42 plus topic tags, never Multiplayer), the
+   preview and the Unlisted visibility, then upload.
+4. `python3 tools/workshop/cli.py collect-id <mod>` and commit.
+5. Smoke-test the real Workshop copy. Delete the staged folder and the
    `~/Zomboid/mods` symlink, subscribe on Steam, launch, and check that
    the mod loads from Steam and works.
-5. For the Horse and A-Life add-ons, open the Steam page, choose **Add/Remove
+6. For the Horse and A-Life add-ons, open the Steam page, choose **Add/Remove
    Required Items**, and add the parent mod. Players then get prompted to
    subscribe to it too. Steam doesn't do this from `require=`.
-6. Unsubscribe, then run `install.sh` again to go back to the dev copy.
+7. Unsubscribe, then run `install.sh` again to go back to the dev copy.
 
 ### 5. Go public
 
