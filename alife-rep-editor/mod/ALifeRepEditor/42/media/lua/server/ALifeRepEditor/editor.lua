@@ -37,7 +37,7 @@ end
 function Editor.now()
     if type(Editor.adapters.nowHours) == "function" then return Editor.adapters.nowHours() end
     local personal = Editor.alife().personal
-    if personal ~= nil and type(personal.nowHours) == "function" then return tonumber(personal.nowHours()) or 0 end
+    if personal ~= nil and type(personal.nowHours) == "function" then return tonumber((personal.nowHours())) or 0 end
     return 0
 end
 
@@ -294,7 +294,7 @@ end
 function Editor.opinionBaseline(record, player)
     local opinion = Editor.alife().opinion
     if opinion ~= nil and type(opinion.baseline) == "function" and player ~= nil then
-        return tonumber(opinion.baseline(record, player)) or 0
+        return tonumber((opinion.baseline(record, player))) or 0
     end
     return 0
 end

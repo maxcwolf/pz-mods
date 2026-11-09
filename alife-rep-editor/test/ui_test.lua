@@ -184,6 +184,13 @@ test("every draw function runs without errors, in loading, normal and personal-o
     window:render()
     ProjectALife.PersonalRep.enabled = true
     ok(not window.nudgeButtons[1].enabled, "nudges disabled with personal reputation off")
+    local snapshot = ALifeRepEditor.Editor.snapshot
+    ALifeRepEditor.Editor.snapshot = function() error("boom") end
+    ALifeRepEditor.Transport.send("refresh", {})
+    ALifeRepEditor.Editor.snapshot = snapshot
+    ok(window.state ~= nil and window.state.unavailable, "a failed refresh still reaches the window")
+    window:render()
+    ok(not window.nudgeButtons[1].enabled, "nudges disabled when the state couldn't load")
     window:close()
     ProjectALife.StatusStore = { reputation = { personal = { level = "rep_n3" } } }
     ARE_HudButton.show(true):render()

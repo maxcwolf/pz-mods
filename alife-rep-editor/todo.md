@@ -1,11 +1,18 @@
 # To do
 
-Nothing here has run in game yet. Everything is checked with `luajit test/run.lua`
-(76 tests), most of them against Project A-Life 1.4.6's real Lua.
+First in-game run (2026-11-08): the hooks install, but the window stuck on
+"Loading" and every button threw a Kahlua `tonumber` ClassCastException. Fixed
+(see below); recheck in game. Everything is checked with `luajit test/run.lua`
+(81 tests), most of them against Project A-Life 1.4.6's real Lua.
 
 ## First in-game run
 
-- [ ] Enable the mod after Project A-Life, load a save, and check
+- [ ] The window loads your level, kills and factions instead of "Loading",
+  and **+5** changes the score with no `opinionBaseline` stack trace in
+  console.txt. (Fixed: `tonumber(f())` got a stray second value from a Kahlua
+  tail-call chain and read it as a number base. `test/kahlua_test.lua` now
+  bans that pattern.)
+- [x] Enable the mod after Project A-Life, load a save, and check
   `~/Zomboid/console.txt` for `[ALifeRepEditor] loaded; 4 of 4 A-Life hooks installed.`
   and no stack traces. Fewer than 4 means an A-Life function was renamed.
 - [ ] The **Rep: <level>** button shows just below the watch clock (top right), names your level and

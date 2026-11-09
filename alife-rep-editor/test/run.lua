@@ -49,7 +49,7 @@ if probe ~= nil then
     require "ALifeRepEditor/hooks"
     ARE_World = dofile(root .. "/test/harness/alife-world.lua")
     ARE_UI = dofile(root .. "/test/harness/ui-stubs.lua")
-    for _, file in ipairs({ "editor_test", "hooks_test", "ui_test" }) do
+    for _, file in ipairs({ "editor_test", "hooks_test", "ui_test", "kahlua_test" }) do
         dofile(root .. "/test/" .. file .. ".lua")
     end
 else

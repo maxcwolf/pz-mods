@@ -36,6 +36,18 @@ test("handle runs a command and returns the fresh state with a message", functio
     ok(string.find(state.message, "0 -> 5", 1, true) ~= nil, state.message)
 end)
 
+test("handle still answers when building the window state fails", function()
+    local world = World.new()
+    local snapshot = ALifeRepEditor.Editor.snapshot
+    ALifeRepEditor.Editor.snapshot = function() error("boom") end
+    local ran, state = pcall(Hooks.handle, world.player, "nudge", { delta = 5 })
+    ALifeRepEditor.Editor.snapshot = snapshot
+    ok(ran, "handle did not throw: " .. tostring(state))
+    ok(state.failed, "marked failed")
+    ok(string.find(state.message, "console.txt", 1, true) ~= nil, state.message)
+    eq(World.row(world).score, 5, "the nudge itself still applied")
+end)
+
 test("handle reports unknown commands and failures", function()
     local world = World.new()
     ok(not Hooks.handle(world.player, "explode", {}).ok)

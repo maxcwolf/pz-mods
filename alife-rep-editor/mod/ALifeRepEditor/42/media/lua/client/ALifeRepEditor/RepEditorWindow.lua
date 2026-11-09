@@ -332,6 +332,7 @@ end
 function ARE_RepEditorWindow:renderHeader(state)
     local low, high = state.scoreMin or -1000, state.scoreMax or 1000
     local levels = self.levelRows
+    if state.unavailable then return end
     if state.personal == nil then
         self:drawText(getText("UI_ALifeRepEditor_PersonalOff"), PAD, self.headerY, 0.8, 0.8, 0.8, 1, UIFont.Medium)
         return

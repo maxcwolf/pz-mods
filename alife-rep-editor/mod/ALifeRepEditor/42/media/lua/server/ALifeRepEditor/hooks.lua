@@ -112,7 +112,12 @@ function Hooks.handle(player, command, args)
         log("command " .. tostring(command) .. " failed: " .. tostring(done))
         done, message = false, "Something went wrong; see console.txt."
     end
-    local state = Editor.snapshot(player)
+    local built, state = pcall(Editor.snapshot, player)
+    if not built or type(state) ~= "table" then
+        log("building the window state failed: " .. tostring(state))
+        return { ok = false, failed = true, unavailable = true, kills = {}, factions = {}, levels = {},
+            message = (message ~= nil and message .. " " or "") .. "Couldn't load the reputation details; see console.txt." }
+    end
     state.message = message
     state.failed = done ~= true
     return state
