@@ -44,7 +44,7 @@ end
 
 for _, file in ipairs({
     "codec_test", "keys_test", "classify_test", "signature_test", "diff_test", "rects_test",
-    "area_test", "factory_test", "blueprint_test", "library_test", "pending_test",
+    "area_test", "claim_test", "factory_test", "blueprint_test", "library_test", "pending_test",
     "capture_test", "apply_test", "runtime_test", "window_test", "translations_test",
 }) do
     dofile(root .. "/test/" .. file .. ".lua")

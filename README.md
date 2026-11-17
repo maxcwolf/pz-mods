@@ -8,7 +8,7 @@ install script.
 | --- | --- | --- |
 | [jabroni's Starting Gear](choose-starting-gear) | Choose what's on your belt, holster and back, what's in your bags, your firearm attachments and what's in your hands, on the character creation screen | — |
 | [jabroni's Starting Vehicle](choose-starting-vehicle) | Choose, paint, outfit and pack the vehicle waiting at your spawn, and save vehicles by name | — |
-| [jabroni's Base Blueprints](base-blueprints) | Claim a building, see every tile you change, save the changes as a blueprint and apply it in a new game | — |
+| [jabroni's Base Blueprints](base-blueprints) | Drag out your base or claim a building, see every tile you change, save the changes as a blueprint and apply it in a new game | — |
 | [jabroni's Room Furnisher](furnish-by-room) | Decorating cheat: place a room type's furniture and floors for free | — |
 | [jabroni's Vehicle Storage](vehicle-storage-capacity) | Sandbox percentages for trunk, seat, glove box and trailer capacity on any vehicle | — |
 | [jabroni's Face Mask Protection](face-covering-protection) | Cloth face coverings and gas masks with a filter cut corpse sickness by at least 50% | — |

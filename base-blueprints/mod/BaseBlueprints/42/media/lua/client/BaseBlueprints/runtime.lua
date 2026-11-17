@@ -5,6 +5,7 @@
 local Area = require("BaseBlueprints/area")
 local Blueprint = require("BaseBlueprints/blueprint")
 local Capture = require("BaseBlueprints/capture")
+local Claim = require("BaseBlueprints/claim")
 local Diff = require("BaseBlueprints/diff")
 local Files = require("BaseBlueprints/files")
 local Keys = require("BaseBlueprints/keys")
@@ -56,14 +57,10 @@ function Runtime.claim()
     return Runtime.state().claim
 end
 
---- Claims the building on a square with a yard margin and records how it
---- looks now. Returns ok, message.
-function Runtime.claimBuilding(square, margin)
-    local def = Runtime.buildingAt(square)
-    if not def then
-        return false, getText("UI_BBP_NoBuilding")
-    end
-    local area = Area.fromBuilding(def, margin)
+--- Claims an area and records how it looks now. When a base is already
+--- claimed, squares both areas share keep their first recording, so
+--- changes already made stay highlighted. Returns ok, message.
+function Runtime.claimArea(area, building)
     if not Area.isValid(area) then
         return false, getText("UI_BBP_TooBig")
     end
@@ -72,10 +69,57 @@ function Runtime.claimBuilding(square, margin)
         return false, getText("UI_BBP_NotLoaded")
     end
     local root = Runtime.state()
-    root.claim = { area = area, baseline = sigs, building = def, margin = margin }
+    local old = root.claim
+    local baseline = sigs
+    if old then
+        baseline = Claim.reshape(old.area, old.baseline, area, sigs)
+    end
+    root.claim = { area = area, baseline = baseline, building = building }
     Runtime.changes = nil
-    Runtime.log(string.format("claimed %d,%d %dx%d levels %d-%d (%d squares)", def.x, def.y, def.w, def.h, area.z1, area.z2, Area.count(area)))
-    return true, getText("UI_BBP_Claimed")
+    local w, h = Area.size(area)
+    Runtime.log(string.format("%s %d,%d %dx%d levels %d-%d (%d squares)", old and "reshaped to" or "claimed",
+        area.x1, area.y1, w, h, area.z1, area.z2, Area.count(area)))
+    return true, getText(old and "UI_BBP_Reshaped" or "UI_BBP_Claimed")
+end
+
+--- Claims the building on a square with a yard margin. Returns ok, message.
+function Runtime.claimBuilding(square, margin)
+    local def = Runtime.buildingAt(square)
+    if not def then
+        return false, getText("UI_BBP_NoBuilding")
+    end
+    return Runtime.claimArea(Area.fromBuilding(def, margin), def)
+end
+
+--- Returns the bounds of every building with a square inside a rectangle
+--- on level z.
+function Runtime.buildingsIn(x1, y1, x2, y2, z)
+    local cell = getCell()
+    local seen, defs = {}, {}
+    for y = y1, y2 do
+        for x = x1, x2 do
+            local def = Runtime.buildingAt(cell:getGridSquare(x, y, z))
+            if def then
+                local id = def.x .. "," .. def.y
+                if not seen[id] then
+                    seen[id] = true
+                    defs[#defs + 1] = def
+                end
+            end
+        end
+    end
+    return defs
+end
+
+--- Claims the rectangle dragged between two corners on level z, with the
+--- levels of any building it touches. Returns ok, message.
+function Runtime.claimRect(ax, ay, bx, by, z)
+    local x1, y1, x2, y2 = Area.normalize(ax, ay, bx, by)
+    if not Area.footprintOk(x1, y1, x2, y2) then
+        return false, getText("UI_BBP_TooBig")
+    end
+    local defs = Runtime.buildingsIn(x1, y1, x2, y2, z)
+    return Runtime.claimArea(Area.fromDrag(x1, y1, x2, y2, z, defs), defs[1])
 end
 
 --- Drops the claim.

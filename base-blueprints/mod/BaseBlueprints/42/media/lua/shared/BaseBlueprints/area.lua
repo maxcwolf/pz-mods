@@ -25,6 +25,38 @@ function Area.fromBuilding(def, margin)
     }
 end
 
+--- Largest footprint a dragged area may cover (tiles across times tiles down).
+Area.MAX_FOOTPRINT = 12000
+
+--- Orders two corners into x1 <= x2, y1 <= y2.
+function Area.normalize(ax, ay, bx, by)
+    return math.min(ax, bx), math.min(ay, by), math.max(ax, bx), math.max(ay, by)
+end
+
+--- Returns true when a dragged footprint is small enough to claim.
+function Area.footprintOk(x1, y1, x2, y2)
+    return (math.abs(x2 - x1) + 1) * (math.abs(y2 - y1) + 1) <= Area.MAX_FOOTPRINT
+end
+
+--- Builds an area from two dragged corners on level z. Its levels reach
+--- from the lowest to the highest level of any building it touches (`defs`,
+--- each { minLevel, maxLevel }) and always include z, plus the level above
+--- the top one for roofs and anything built up there.
+function Area.fromDrag(ax, ay, bx, by, z, defs)
+    local x1, y1, x2, y2 = Area.normalize(ax, ay, bx, by)
+    local low, high = z, z
+    for _, def in ipairs(defs or {}) do
+        low = math.min(low, def.minLevel or 0)
+        high = math.max(high, def.maxLevel or 0)
+    end
+    return { x1 = x1, y1 = y1, x2 = x2, y2 = y2, z1 = low, z2 = high + 1 }
+end
+
+--- Returns the footprint size of an area as width, height.
+function Area.size(area)
+    return area.x2 - area.x1 + 1, area.y2 - area.y1 + 1
+end
+
 --- Returns the number of squares in an area.
 function Area.count(area)
     return (area.x2 - area.x1 + 1) * (area.y2 - area.y1 + 1) * (area.z2 - area.z1 + 1)

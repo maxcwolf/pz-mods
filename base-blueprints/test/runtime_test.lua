@@ -166,3 +166,42 @@ test("runtime: every-tile saves, same-name replace, delete and auto-apply", func
     eq(#Runtime2.entries(), 0)
     eq((Runtime2.load(again.id)), nil)
 end)
+
+test("runtime: a dragged rectangle claims yard-only bases and building levels", function()
+    local world, Runtime = buildHouse()
+    for x = 20, 30 do
+        for y = 20, 30 do
+            world.setLoaded(x, y, true)
+        end
+    end
+    local okay, message = Runtime.claimRect(25, 25, 20, 22, 0)
+    ok(okay, message)
+    local area = Runtime.claim().area
+    eq(area.x1, 20)
+    eq(area.y2, 25)
+    eq(area.z2, 1)
+    eq(Runtime.claim().building, nil, "no building in a yard")
+    ok(not (Runtime.claimRect(0, 0, 500, 500, 0)), "too big")
+    Runtime.unclaim()
+    ok(Runtime.claimRect(10, 10, 11, 11, 0))
+    eq(Runtime.claim().building.x, 10, "touched building recorded")
+end)
+
+test("runtime: redrawing the claim keeps changes already made", function()
+    local world, Runtime = buildHouse()
+    Runtime.claimBuilding(world.square(11, 11, 0), 1)
+    remodel(world)
+    -- Something outside the old claim changes before the redraw.
+    for y = 9, 13 do
+        world.setLoaded(15, y, true)
+    end
+    world.put(15, 12, 0, "IsoObject", "carpentry_02_10")
+    local okay, message = Runtime.claimRect(11, 10, 15, 12, 0)
+    ok(okay)
+    eq(message, "UI_BBP_Reshaped")
+    local keys = Runtime.findChanges().keys
+    eq(table.concat(keys, " "), "12,10,0 11,11,0 11,12,0 12,12,0 13,12,0",
+        "old changes kept, the bench outside the old claim counts as already there")
+    local entry = Runtime.save("Redrawn", {})
+    eq(entry.squares, 5)
+end)

@@ -6,6 +6,14 @@ Grep ~/Zomboid/console.txt for `[BaseBlueprints]` and `STACK TRACE`.
 
 - [ ] Right-click inside a house: "Base Blueprints" has both claim options;
       on a lawn with no building only "Open Base Blueprints...".
+- [ ] *Drag out your base area*: the square under the mouse is green; holding
+      the button and dragging grows a green rectangle on your level; it turns
+      red past 12,000 tiles; letting go claims it (console `claimed ...`) and
+      the window comes back if it was open. Right-click while dragging cancels.
+- [ ] Drag over part of a two-story house from the ground floor: the claim
+      covers the basement (if any), both floors and the roof level.
+- [ ] *Redraw your base area* after making changes: the gold tiles inside the
+      new area stay gold (console `reshaped to ...`).
 - [ ] Claiming shows a halo note and the console prints `claimed x,y WxH`;
       the claim edge shows in faint blue on your level.
 - [ ] Opening and closing a door, smashing a window and switching a lamp on
@@ -39,9 +47,14 @@ Grep ~/Zomboid/console.txt for `[BaseBlueprints]` and `STACK TRACE`.
   game above).
 - Container contents optional, off by default (done; check in game above).
 
+## Requested 2026-11-17
+
+- Drag the base area and what gets saved (done; check in game above).
+
 ## Ideas
 
+- Choose the levels of a dragged area by hand instead of automatically.
+
 - Untick single tiles in the highlight before saving.
-- Claim an area by dragging a rectangle, for bases outside buildings.
 - Pick blueprints on the character creation screen as well.
 - Carry barricades and generators.

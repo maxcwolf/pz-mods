@@ -299,6 +299,13 @@ function Fake.newWorld(opts)
     end
     --- Creates a square.
     function cell:createNewGridSquare(x, y, z) return world.square(x, y, z) end
+    --- Sets the drag cursor; like IsoCell.setDrag, the one it replaces is
+    --- deactivated.
+    function cell:setDrag(obj)
+        local old = world.drag
+        world.drag = obj
+        if old and old ~= obj and old.deactivate then old:deactivate() end
+    end
     world.cell = cell
 
     _G.getCell = function() return cell end
@@ -350,6 +357,11 @@ function Fake.newWorld(opts)
         world.highlights[#world.highlights + 1] = { x1 = x1, y1 = y1, x2 = x2, y2 = y2, z = z, r = r }
     end
     _G.instanceItem = function(t) return { type = t } end
+    world.mouse = { x = 0, y = 0 }
+    _G.getMouseX = function() return 0 end
+    _G.getMouseY = function() return 0 end
+    _G.screenToIsoX = function() return world.mouse.x + 0.5 end
+    _G.screenToIsoY = function() return world.mouse.y + 0.5 end
     _G.Events = setmetatable({}, { __index = function(t, name)
         local ev = { handlers = {} }
         --- Registers a handler.

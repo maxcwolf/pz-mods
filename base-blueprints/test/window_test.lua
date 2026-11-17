@@ -65,7 +65,7 @@ test("window: claim from the menu, see changes, save, apply in a new game", func
     eq(rightClick(w, 11, 11):find("UI_BBP_HideChanges") ~= nil, true)
 
     local window = BBP_BlueprintWindow.open()
-    eq(window.statusLabel.name, "UI_BBP_StatusClaimed(10|10|2)")
+    eq(window.statusLabel.name, "UI_BBP_StatusClaimed(5|5|11, 11|2)")
     window.nameEntry:setText("Couch moved")
     window.saveButton:click()
     eq(window.messageLabel.name, "UI_BBP_Saved(Couch moved|2)")
@@ -111,11 +111,57 @@ test("window: menu offers claiming only on buildings, unclaim asks first", funct
     eq(rightClick(w, 13, 13):find("UI_BBP_ClaimHouse"), nil, "yard square has no building")
     pick(rightClick(w, 10, 10):find("UI_BBP_ClaimYard"))
     local Runtime = require("BaseBlueprints/runtime")
-    eq(Runtime.claim().margin, 6)
+    eq(Runtime.claim().area.x1, 4, "building at 10 minus 6 tiles of yard")
     local window = BBP_BlueprintWindow.open()
     window.unclaimButton:click()
     FakeUI.answer(true)
     eq(Runtime.claim(), nil)
     eq(window.saveButton.enable, false)
     eq(window.statusLabel.name, "UI_BBP_StatusNone")
+end)
+
+test("window: drag out an area with the cursor, cancel brings the window back", function()
+    local w, main = world()
+    main.onGameStart()
+    local window = BBP_BlueprintWindow.open()
+    window.dragButton:click()
+    eq(window.visible, false, "window hidden while dragging")
+    local cursor = w.drag
+    ok(cursor, "drag cursor set")
+    eq(w.notes[#w.notes], "UI_BBP_DragHint")
+
+    -- Hover: one square highlighted.
+    w.mouse = { x = 9, y = 9 }
+    w.highlights = {}
+    cursor:render(9, 9, 0)
+    eq(w.highlights[1].x2 - w.highlights[1].x1, 1)
+    -- Press on 9,9 and drag to 13,12: the game keeps passing the pressed square.
+    cursor.isLeftDown = true
+    w.mouse = { x = 13, y = 12 }
+    w.highlights = {}
+    cursor:render(9, 9, 0)
+    eq(w.highlights[1].x1, 9)
+    eq(w.highlights[1].x2, 14, "exclusive edge")
+    eq(w.highlights[1].y2, 13)
+    -- Too big turns red.
+    w.mouse = { x = 400, y = 400 }
+    w.highlights = {}
+    cursor:render(9, 9, 0)
+    eq(w.highlights[1].r, 1.0)
+    -- Let go on 13,12.
+    w.mouse = { x = 13, y = 12 }
+    cursor:create(9, 9, 0)
+    eq(w.drag, nil, "cursor put away")
+    eq(window.visible, true)
+    eq(window.messageLabel.name, "UI_BBP_Claimed")
+    local Runtime = require("BaseBlueprints/runtime")
+    local area = Runtime.claim().area
+    eq(area.x1 .. "," .. area.y1 .. "," .. area.x2 .. "," .. area.y2, "9,9,13,12")
+    eq(window.statusLabel.name, "UI_BBP_StatusClaimed(5|4|11, 10|0)")
+
+    -- The menu now offers a redraw; picking it and cancelling changes nothing.
+    pick(rightClick(w, 11, 11):find("UI_BBP_RedrawArea"))
+    ok(w.drag, "cursor up again")
+    w.drag:deactivate()
+    eq(Runtime.claim().area.x2, 13)
 end)

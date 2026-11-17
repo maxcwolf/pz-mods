@@ -1,8 +1,10 @@
 --- Adds "Base Blueprints" to the right-click menu on the map: claim the
---- building you clicked, show or hide changes, and open the window.
+--- building you clicked or drag out an area, show or hide changes, and open
+--- the window.
 local Area = require("BaseBlueprints/area")
 local Runtime = require("BaseBlueprints/runtime")
 local Overlay = require("BaseBlueprints/overlay")
+local AreaCursor = require("BaseBlueprints/area-cursor")
 
 local Menu = {}
 
@@ -37,6 +39,15 @@ function Menu.onClaim(square, margin)
     end
 end
 
+--- Starts dragging out the base area.
+function Menu.onDrag()
+    AreaCursor.start(function()
+        if BBP_BlueprintWindow and BBP_BlueprintWindow.instance then
+            BBP_BlueprintWindow.instance:refresh()
+        end
+    end)
+end
+
 --- Turns the change highlight on or off.
 function Menu.onToggle()
     Overlay.setEnabled(not Overlay.enabled)
@@ -63,6 +74,7 @@ function Menu.onFill(playerNum, context, worldobjects, test)
         sub:addOption(getText("UI_BBP_ClaimHouse"), square, Menu.onClaim, Area.HOUSE_MARGIN)
         sub:addOption(getText("UI_BBP_ClaimYard", Runtime.int(Area.YARD_MARGIN)), square, Menu.onClaim, Area.YARD_MARGIN)
     end
+    sub:addOption(getText(claim and "UI_BBP_RedrawArea" or "UI_BBP_DragArea"), nil, Menu.onDrag)
     sub:addOption(getText("UI_BBP_Open"), nil, Menu.onOpen)
 end
 

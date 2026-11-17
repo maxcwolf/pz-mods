@@ -178,6 +178,18 @@ function FakeUI.install()
         return d
     end
 
+    _G.ISBuildingObject = {}
+    --- Makes a subclass, like ISBaseObject:derive.
+    function ISBuildingObject:derive(name)
+        local cls = setmetatable({ Type = name }, { __index = self })
+        cls.__index = cls
+        return cls
+    end
+    --- Makes an instance, like ISBaseObject:new.
+    function ISBuildingObject.new(cls) return setmetatable({}, cls) end
+    --- Resets drag state.
+    function ISBuildingObject:init() self.isLeftDown = false end
+
     _G.ISContextMenu = {}
     --- Makes a submenu.
     function ISContextMenu:getNew()

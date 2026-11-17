@@ -3,9 +3,16 @@
 A Project Zomboid Build 42 mod (single player). Fix up a building the way
 you like it once, then have it that way in every new game.
 
-1. **Claim a base.** Right-click inside a building and choose
-   *Base Blueprints > Claim this building as your base* (or *...and 6 tiles of
-   yard*). The mod records how the building looks right now.
+1. **Claim a base.** Right-click and choose *Base Blueprints > Drag out your
+   base area*, then hold the mouse button and drag over the tiles your base
+   covers (red means too big; right-click cancels). This is also what gets
+   saved. The area covers the level you're on, every level of any building
+   it touches, and the level above for roofs and anything built up there.
+   Or right-click inside a building and claim the whole building
+   (*Claim this building as your base*, or *...and 6 tiles of yard*). The mod
+   records how the area looks right now. *Redraw your base area* (or *Drag
+   area* in the window) changes the shape later without forgetting changes
+   you already made.
 2. **Change it.** Place, move or remove furniture, lay floors, paint, build
    or knock down walls. With *Show changes* on, every changed tile is
    highlighted in gold and the claim's edge in faint blue, on the level

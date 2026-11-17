@@ -10,6 +10,8 @@ require "ISUI/ISScrollingListBox"
 require "ISUI/ISModalDialog"
 local Runtime = require("BaseBlueprints/runtime")
 local Overlay = require("BaseBlueprints/overlay")
+local Area = require("BaseBlueprints/area")
+local AreaCursor = require("BaseBlueprints/area-cursor")
 local Blueprint = require("BaseBlueprints/blueprint")
 local Library = require("BaseBlueprints/library")
 
@@ -91,6 +93,8 @@ function BBP_BlueprintWindow:createChildren()
     self.changesTick = self:makeTick(x, y, getText("UI_BBP_ShowChanges"), BBP_BlueprintWindow.onChangesTick)
     self.unclaimButton = self:makeButton(0, y, getText("UI_BBP_Unclaim"), BBP_BlueprintWindow.onUnclaim)
     self.unclaimButton:setX(self.width - PAD - self.unclaimButton:getWidth())
+    self.dragButton = self:makeButton(0, y, getText("UI_BBP_DragButton"), BBP_BlueprintWindow.onDrag)
+    self.dragButton:setX(self.unclaimButton:getX() - PAD - self.dragButton:getWidth())
     y = y + BUTTON_HGT + PAD * 2
 
     self:makeLabel(x, y, getText("UI_BBP_SaveHeading"))
@@ -168,8 +172,10 @@ function BBP_BlueprintWindow:refresh()
     local claim = Runtime.claim()
     if claim then
         local changes = Runtime.findChanges()
-        local b = claim.building
-        self.statusLabel:setName(getText("UI_BBP_StatusClaimed", Runtime.int(b.x), Runtime.int(b.y), Runtime.int(#changes.keys)))
+        local w, h = Area.size(claim.area)
+        local cx, cy = Area.center(claim.area)
+        self.statusLabel:setName(getText("UI_BBP_StatusClaimed", Runtime.int(w), Runtime.int(h),
+            Runtime.int(cx) .. ", " .. Runtime.int(cy), Runtime.int(#changes.keys)))
     else
         self.statusLabel:setName(getText("UI_BBP_StatusNone"))
     end
@@ -214,6 +220,19 @@ end
 function BBP_BlueprintWindow:onChangesTick(index, selected)
     Overlay.setEnabled(selected == true and Runtime.claim() ~= nil)
     self:refresh()
+end
+
+--- Hides the window while the player drags out the base area, then
+--- brings it back.
+function BBP_BlueprintWindow:onDrag()
+    self:setVisible(false)
+    AreaCursor.start(function(okay, message)
+        if message then
+            self:setMessage(message)
+        end
+        self:setVisible(true)
+        self:refresh()
+    end)
 end
 
 --- Drops the claim after asking.

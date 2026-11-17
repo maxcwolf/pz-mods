@@ -17,3 +17,7 @@
 - A corrupt blueprint line is reported as a load failure; the parser runs in
   `pcall`, which the game may also print as a stack trace.
 - Multiplayer is not supported; the mod does nothing when `isClient()`.
+- Dragging the base area needs a mouse; there is no controller version yet.
+- A dragged area's levels are chosen automatically (the buildings it touches,
+  your level, and one above), so a base dragged on open ground covers only
+  your level and the one above it.
