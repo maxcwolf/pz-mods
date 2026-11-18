@@ -35,7 +35,7 @@ function ok(condition, label)
 end
 
 for _, file in ipairs({ "score_test", "kill-ledger_test", "faction-restore_test", "pause_test", "permissions_test",
-    "faction-rows_test", "hud-prefs_test", "look_test" }) do
+    "faction-rows_test", "hud-prefs_test", "look_test", "opinion-bands_test", "people-rows_test", "crew-rows_test", "translations_test" }) do
     dofile(root .. "/test/" .. file .. ".lua")
 end
 
@@ -49,7 +49,8 @@ if probe ~= nil then
     require "ALifeRepEditor/hooks"
     ARE_World = dofile(root .. "/test/harness/alife-world.lua")
     ARE_UI = dofile(root .. "/test/harness/ui-stubs.lua")
-    for _, file in ipairs({ "editor_test", "hooks_test", "ui_test", "kahlua_test" }) do
+    ARE_Bodies = dofile(root .. "/test/harness/crew-bodies.lua")
+    for _, file in ipairs({ "editor_test", "hooks_test", "people_test", "crew_test", "ui_test", "kahlua_test" }) do
         dofile(root .. "/test/" .. file .. ".lua")
     end
 else

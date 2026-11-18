@@ -3,7 +3,8 @@
 --- drive them outside the game.
 local Stubs = { speed = 1, multiplier = 1, files = {}, sounds = 0, screenWidth = 1920, screenHeight = 1080 }
 
-for _, name in ipairs({ "ISUI/ISCollapsableWindow", "ISUI/ISButton", "ISUI/ISScrollingListBox", "ISUI/ISPanel" }) do
+for _, name in ipairs({ "ISUI/ISCollapsableWindow", "ISUI/ISButton", "ISUI/ISScrollingListBox", "ISUI/ISPanel",
+    "ISUI/ISTextEntryBox" }) do
     package.preload[name] = function() return true end
 end
 
@@ -94,6 +95,12 @@ function Element:initialise() self:createChildren() end
 function Element:createChildren() end
 function Element:instantiate() end
 function Element:addChild(child) self.children[#self.children + 1] = child; child.parent = self end
+--- Removes a child element.
+function Element:removeChild(child)
+    for index, other in ipairs(self.children) do
+        if other == child then table.remove(self.children, index) return end
+    end
+end
 function Element:setX(x) self.x = x end
 function Element:setY(y) self.y = y end
 function Element:getX() return self.x end
@@ -133,8 +140,26 @@ function ISButton:new(x, y, width, height, title, target, onclick)
     return o
 end
 function ISButton:setEnable(enabled) self.enabled = enabled end
+--- Changes a button's title.
+function ISButton:setTitle(title) self.title = title end
 --- Simulates a click the way ISButton:onMouseUp calls its handler.
 function ISButton:click() self.onclick(self.target, self) end
+
+ISTextEntryBox = Element:derive("ISTextEntryBox")
+--- Creates a text box holding its title as text.
+function ISTextEntryBox:new(title, x, y, width, height)
+    local o = Element.new(self, x, y, width, height)
+    o.text = title or ""
+    return o
+end
+function ISTextEntryBox:getText() return self.text end
+--- Types text into the box the way the game reports it.
+function ISTextEntryBox:type(text)
+    self.text = text
+    if self.onTextChange then self:onTextChange() end
+end
+function ISTextEntryBox:setClearButton() end
+function ISTextEntryBox:setPlaceholderText(text) self.placeholder = text end
 
 ISScrollingListBox = Element:derive("ISScrollingListBox")
 --- Creates an empty list.
@@ -144,6 +169,8 @@ function ISScrollingListBox:new(x, y, width, height)
     return o
 end
 function ISScrollingListBox:clear() self.items = {} end
+--- Remembers the last row scrolled into view.
+function ISScrollingListBox:ensureVisible(index) self.visibleIndex = index end
 function ISScrollingListBox:addItem(name, item) self.items[#self.items + 1] = { text = name, item = item, height = self.itemheight } end
 --- Finds the row under a content y.
 function ISScrollingListBox:rowAt(x, y)

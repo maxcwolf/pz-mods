@@ -1,19 +1,29 @@
 --- Connects the editor to Project A-Life: wraps the four A-Life functions a
---- player's NPC kill passes through (so the kill can be undone later) and
---- answers the window's commands, checking who is allowed in multiplayer.
+--- player's NPC kill passes through (so the kill can be undone later), the two
+--- that build an NPC's body (so crew edits survive it reloading), and answers
+--- the window's commands, checking who is allowed in multiplayer.
 require "ProjectALife/Decisions/ALifeReputation"
 require "ProjectALife/Decisions/ALifeReputationPersonal"
 require "ProjectALife/Decisions/ALifeRepTrack"
 require "ProjectALife/Decisions/ALifeNpcOpinion"
+require "ProjectALife/Decisions/ALifeRelations"
+require "ProjectALife/Companions/ALifeCompanions"
+require "ProjectALife/Combat/ALifeWeapons"
+require "ProjectALife/Shells/ALifeShellState"
+require "ProjectALife/Shells/ALifeProfileHydrator"
 require "ALifeRepEditor/editor"
+require "ALifeRepEditor/people"
+require "ALifeRepEditor/crew"
 require "ALifeRepEditor/permissions"
 
 ALifeRepEditor = ALifeRepEditor or {}
 
 local Editor = ALifeRepEditor.Editor
+local People = ALifeRepEditor.People
+local Crew = ALifeRepEditor.Crew
 local Permissions = ALifeRepEditor.Permissions
 
-local Hooks = { MODULE = "ALifeRepEditor", originals = {}, installed = 0 }
+local Hooks = { MODULE = "ALifeRepEditor", originals = {}, installed = 0, EXPECTED = 6 }
 ALifeRepEditor.Hooks = Hooks
 
 --- Prints a tagged line to the console.
@@ -30,7 +40,7 @@ end
 --- Replaces target[name] with a wrapper once, keeping the original for the wrapper to call.
 function Hooks.wrap(target, name, makeWrapper)
     if type(target) ~= "table" or type(target[name]) ~= "function" then
-        log("cannot find A-Life function " .. tostring(name) .. "; undo for kills will be partial.")
+        log("cannot find A-Life function " .. tostring(name) .. "; undo for kills or crew edits will be partial.")
         return false
     end
     Hooks.originals[target] = Hooks.originals[target] or {}
@@ -76,6 +86,21 @@ function Hooks.install()
             return changed, reason
         end
     end)
+    Hooks.wrap(P.ProfileHydrator, "plan", function(original)
+        return function(actor, ...)
+            local plan, why = original(actor, ...)
+            if plan ~= nil then safely(Crew.overlay, plan, actor) end
+            return plan, why
+        end
+    end)
+    Hooks.wrap(P.ProfileHydrator, "wardrobePinned", function(original)
+        return function(actor, ...)
+            local pinned = false
+            safely(function() pinned = Crew.outfitPinned(actor) end)
+            if pinned then return true end
+            return original(actor, ...)
+        end
+    end)
     return Hooks.installed
 end
 
@@ -98,7 +123,31 @@ Hooks.COMMANDS = {
     forgive = function(player, args) return Editor.forgive(player, args.faction) end,
     forgiveAll = function(player) return Editor.forgiveAll(player) end,
     makeHostile = function(player, args) return Editor.makeHostile(player, args.faction) end,
+    personNudge = function(player, args) return People.nudge(player, args.uid, args.delta) end,
+    personSetBand = function(player, args) return People.setBand(player, args.uid, args.band) end,
+    personForget = function(player, args) return People.forget(player, args.uid) end,
+    personCalm = function(player, args) return People.calm(player, args.uid) end,
+    personHostile = function(player, args) return People.makeHostile(player, args.uid) end,
+    personJoinCrew = function(player, args) return People.joinCrew(player, args.uid) end,
+    personLeaveCrew = function(player, args) return People.leaveCrew(player, args.uid) end,
+    crewSkill = function(player, args) return Crew.changeSkill(player, args.crew, args.skill, args.delta) end,
+    crewRating = function(player, args) return Crew.changeRating(player, args.crew, args.rating, args.delta) end,
+    crewMaxAll = function(player, args) return Crew.maxAll(player, args.crew) end,
+    crewGive = function(player, args) return Crew.give(player, args.crew, args.item, args.count) end,
+    crewEquip = function(player, args) return Crew.equip(player, args.crew, args.id) end,
+    crewRemove = function(player, args) return Crew.remove(player, args.crew, args.id) end,
+    crewAmmo = function(player, args) return Crew.addAmmo(player, args.crew, args.rounds) end,
 }
+
+--- Builds the window state, with the People tab focused on one NPC and the Crew tab on one member when asked.
+function Hooks.state(player, focus, crewPick)
+    local state = Editor.snapshot(player)
+    if state.ok ~= false then
+        People.addTo(state, player, focus)
+        Crew.addTo(state, player, crewPick)
+    end
+    return state
+end
 
 --- Runs one window command and returns the fresh state for the window, with a message.
 function Hooks.handle(player, command, args)
@@ -112,7 +161,8 @@ function Hooks.handle(player, command, args)
         log("command " .. tostring(command) .. " failed: " .. tostring(done))
         done, message = false, "Something went wrong; see console.txt."
     end
-    local built, state = pcall(Editor.snapshot, player)
+    local options = type(args) == "table" and args or {}
+    local built, state = pcall(Hooks.state, player, options.focus or options.uid, options.crew)
     if not built or type(state) ~= "table" then
         log("building the window state failed: " .. tostring(state))
         return { ok = false, failed = true, unavailable = true, kills = {}, factions = {}, levels = {},
@@ -131,7 +181,7 @@ function Hooks.onClientCommand(module, command, player, args)
 end
 
 Hooks.install()
-log("loaded; " .. tostring(Hooks.installed) .. " of 4 A-Life hooks installed.")
+log("loaded; " .. tostring(Hooks.installed) .. " of " .. Hooks.EXPECTED .. " A-Life hooks installed.")
 
 if type(Events) == "table" then
     if Events.OnClientCommand ~= nil then Events.OnClientCommand.Add(Hooks.onClientCommand) end

@@ -2,11 +2,11 @@
 local World = ARE_World
 local Hooks = ALifeRepEditor.Hooks
 
-test("all four A-Life hooks are installed and installing again changes nothing", function()
-    eq(Hooks.installed, 4)
+test("all six A-Life hooks are installed and installing again changes nothing", function()
+    eq(Hooks.installed, 6); eq(Hooks.EXPECTED, 6)
     local wrapped = ProjectALife.PersonalRep.onActorKilled
     Hooks.install()
-    eq(Hooks.installed, 4)
+    eq(Hooks.installed, 6)
     ok(ProjectALife.PersonalRep.onActorKilled == wrapped)
 end)
 

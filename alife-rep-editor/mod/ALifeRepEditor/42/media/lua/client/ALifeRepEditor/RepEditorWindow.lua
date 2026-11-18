@@ -1,7 +1,9 @@
---- The reputation editor window: your level and score with a bar, quick
---- adjust and set-level buttons, recent NPC kills with Undo, and every
---- faction's attitude with Forgive and Make hostile. Pauses the game while open
---- in single player and puts the old speed back on close.
+--- The reputation editor window. The Reputation tab has your level and score
+--- with a bar, quick adjust and set-level buttons, recent NPC kills with Undo,
+--- and every faction's attitude with Forgive and Make hostile; the People tab
+--- edits one NPC's relationship with you; the Crew tab edits your companions'
+--- skills and gear. Pauses the game while open in single player and puts the
+--- old speed back on close.
 require "ISUI/ISCollapsableWindow"
 require "ISUI/ISButton"
 require "ISUI/ISScrollingListBox"
@@ -11,6 +13,8 @@ require "ALifeRepEditor/pause"
 require "ALifeRepEditor/score"
 require "ALifeRepEditor/look"
 require "ALifeRepEditor/faction-rows"
+require "ALifeRepEditor/PeopleView"
+require "ALifeRepEditor/CrewView"
 
 local Transport = ALifeRepEditor.Transport
 local Pause = ALifeRepEditor.Pause
@@ -38,8 +42,8 @@ local function measure(font, text)
     return TM:MeasureStringX(font, tostring(text))
 end
 
---- Opens the window, or brings it forward if it is already open.
-function ARE_RepEditorWindow.open()
+--- Opens the window, or brings it forward; options.person opens the People tab on that NPC's uid.
+function ARE_RepEditorWindow.open(options)
     local window = ARE_RepEditorWindow.instance
     if window == nil then
         local width = math.min(720, getCore():getScreenWidth() - 40)
@@ -55,7 +59,12 @@ function ARE_RepEditorWindow.open()
         window:center()
     end
     window:bringToTop()
-    Transport.send("refresh", {})
+    local person = type(options) == "table" and options.person or nil
+    if person ~= nil then
+        window.peopleView.selectedUid = tostring(person)
+        window:showTab("people")
+    end
+    window:send("refresh", person ~= nil and { focus = tostring(person) } or {})
     return window
 end
 
@@ -78,7 +87,41 @@ function ARE_RepEditorWindow:new(x, y, width, height)
     o.pauseState = nil
     o.killButtons = {}
     o.levelButtons = {}
+    o.tab = "reputation"
     return o
+end
+
+--- Sends a command, telling the server who the People and Crew tabs have picked.
+function ARE_RepEditorWindow:send(command, args)
+    local payload = args or {}
+    if payload.focus == nil and self.peopleView ~= nil then payload.focus = self.peopleView.selectedUid end
+    if payload.crew == nil and self.crewView ~= nil then payload.crew = self.crewView.selectedUid end
+    return Transport.send(command, payload)
+end
+
+ARE_RepEditorWindow.TABS = { "reputation", "people", "crew" }
+
+--- Switches between the "reputation", "people" and "crew" tabs.
+function ARE_RepEditorWindow:showTab(tab)
+    self.tab = (tab == "people" or tab == "crew") and tab or "reputation"
+    for name, button in pairs(self.tabButtons or {}) do
+        local active = name == self.tab
+        button.backgroundColor = active and { r = 0.3, g = 0.3, b = 0.3, a = 1 } or { r = 0, g = 0, b = 0, a = 1 }
+        button.borderColor = active and { r = 1, g = 1, b = 1, a = 1 } or { r = 0.5, g = 0.5, b = 0.5, a = 1 }
+    end
+    if self.factionList ~= nil then self:layout() end
+end
+
+--- Handles a click on a tab button.
+function ARE_RepEditorWindow:onTab(tab)
+    self:showTab(tab)
+end
+
+--- Opens the Crew tab on one crew member.
+function ARE_RepEditorWindow:openCrew(uid)
+    self.crewView.selectedUid = uid
+    self:showTab("crew")
+    self:send("refresh", { crew = uid })
 end
 
 --- Centers the window on screen.
@@ -129,6 +172,11 @@ end
 --- Builds every control; positions are set in layout().
 function ARE_RepEditorWindow:createChildren()
     ISCollapsableWindow.createChildren(self)
+    self.tabButtons = {
+        reputation = self:makeButton(getText("UI_ALifeRepEditor_TabReputation"), self.onTab, "reputation"),
+        people = self:makeButton(getText("UI_ALifeRepEditor_TabPeople"), self.onTab, "people"),
+        crew = self:makeButton(getText("UI_ALifeRepEditor_TabCrew"), self.onTab, "crew"),
+    }
     self.nudgeButtons = {}
     for _, delta in ipairs(NUDGES) do
         self.nudgeButtons[#self.nudgeButtons + 1] = self:makeButton(Score.signed(delta), self.onNudge, delta)
@@ -151,6 +199,17 @@ function ARE_RepEditorWindow:createChildren()
     self.forgiveAllButton = self:makeButton(getText("UI_ALifeRepEditor_ForgiveAll"), self.onForgiveAll)
     self.closeBottom = self:makeButton(getText("UI_ALifeRepEditor_Close"), self.close)
     self:makeFactionList()
+    local people = ARE_PeopleView:new(PAD, 0, self.width - PAD * 2, self)
+    people:initialise()
+    people:instantiate()
+    self:addChild(people)
+    self.peopleView = people
+    local crew = ARE_CrewView:new(PAD, 0, self.width - PAD * 2, self)
+    crew:initialise()
+    crew:instantiate()
+    self:addChild(crew)
+    self.crewView = crew
+    self:showTab(self.tab)
     self:layout()
 end
 
@@ -226,17 +285,38 @@ function ARE_RepEditorWindow.onFactionListMouseDown(list, x, y)
     local inside = function(rect) return x >= rect.x and x < rect.x + rect.w and localY >= rect.y and localY < rect.y + rect.h end
     if inside(forgive) and Rows.forgivable(row) then
         getSoundManager():playUISound("UIActivateButton")
-        Transport.send("forgive", { faction = row.id })
+        list.window:send("forgive", { faction = row.id })
     elseif inside(hostile) and row.status ~= "hostile" then
         getSoundManager():playUISound("UIActivateButton")
-        Transport.send("makeHostile", { faction = row.id })
+        list.window:send("makeHostile", { faction = row.id })
     end
 end
 
 --- Places every control for the current state and sizes the window to fit.
 function ARE_RepEditorWindow:layout()
     local inner = self.width - PAD * 2
-    local y = self:titleBarHeight() + PAD
+    local y = self:titleBarHeight() + GAP
+    local x = PAD
+    for _, name in ipairs(ARE_RepEditorWindow.TABS) do
+        local button = self.tabButtons[name]
+        button:setX(x)
+        button:setY(y)
+        x = x + button.width + GAP
+    end
+    y = y + BTN_H + PAD
+    local views = { people = self.peopleView, crew = self.crewView }
+    for name, view in pairs(views) do view:setVisible(self.tab == name) end
+    for _, control in ipairs(self:reputationControls()) do control:setVisible(self.tab == "reputation") end
+    local view = views[self.tab]
+    if view ~= nil then
+        view:setX(PAD)
+        view:setY(y)
+        view:setWidth(inner)
+        view:layout()
+        y = y + view.height + PAD
+        self.headerY = y
+        return self:layoutFooter(y)
+    end
     self.headerY = y
     y = y + FONT_L + 4 + FONT_S + GAP
     self.barY = y
@@ -246,7 +326,7 @@ function ARE_RepEditorWindow:layout()
     local labelWidth = math.max(measure(UIFont.Medium, getText("UI_ALifeRepEditor_Nudge")),
         measure(UIFont.Medium, getText("UI_ALifeRepEditor_SetLevel"))) + 12
     self.labelWidth = labelWidth
-    local x = PAD + labelWidth
+    x = PAD + labelWidth
     for _, button in ipairs(self.nudgeButtons) do
         button:setX(x)
         button:setY(y)
@@ -272,7 +352,7 @@ function ARE_RepEditorWindow:layout()
         local entry = kills[slot]
         button:setX(self.width - PAD - button.width)
         button:setY(y + (slot - 1) * KILL_ROW)
-        button:setVisible(entry ~= nil and entry.undone ~= true)
+        button:setVisible(entry ~= nil and entry.undone ~= true and self.tab == "reputation")
     end
     y = y + math.max(1, #kills) * KILL_ROW + PAD
 
@@ -282,17 +362,31 @@ function ARE_RepEditorWindow:layout()
     y = y + BTN_H + 2
     self.factionList:setY(y)
     y = y + self.factionList.height + PAD
+    return self:layoutFooter(y)
+end
 
+--- Places the footer and Close button at y and sizes the window to fit.
+function ARE_RepEditorWindow:layoutFooter(y)
     self.footerY = y
     self.closeBottom:setX(self.width - PAD - self.closeBottom.width)
     self.closeBottom:setY(y)
-    y = y + BTN_H + PAD
-    self:setHeight(y)
+    self:setHeight(y + BTN_H + PAD)
+end
+
+--- Returns the controls that belong to the Reputation tab.
+function ARE_RepEditorWindow:reputationControls()
+    local controls = { self.forgiveAllButton, self.factionList }
+    for _, group in ipairs({ self.nudgeButtons, self.levelButtons, self.killButtons }) do
+        for _, button in ipairs(group) do controls[#controls + 1] = button end
+    end
+    return controls
 end
 
 --- Takes a fresh state from the server and refreshes the window.
 function ARE_RepEditorWindow:setState(state)
     self.state = state
+    self.peopleView:setState(state)
+    self.crewView:setState(state)
     local list = self.factionList
     list:clear()
     for _, row in ipairs(state.factions or {}) do list:addItem(row.name, row) end
@@ -318,6 +412,10 @@ function ARE_RepEditorWindow:render()
     local state = self.state
     if state == nil then
         self:drawText(getText("UI_ALifeRepEditor_Loading"), PAD, self.headerY, 1, 1, 1, 1, UIFont.Large)
+        return
+    end
+    if self.tab ~= "reputation" then
+        self:renderFooter(state)
         return
     end
     self:renderHeader(state)
@@ -396,23 +494,23 @@ end
 
 --- Sends a score nudge.
 function ARE_RepEditorWindow:onNudge(delta)
-    Transport.send("nudge", { delta = delta })
+    self:send("nudge", { delta = delta })
 end
 
 --- Sends a jump to a level.
 function ARE_RepEditorWindow:onSetLevel(levelId)
-    Transport.send("setLevel", { level = levelId })
+    self:send("setLevel", { level = levelId })
 end
 
 --- Sends an undo for the kill in a slot.
 function ARE_RepEditorWindow:onUndo(slot)
     local entry = self.state ~= nil and self.state.kills ~= nil and self.state.kills[slot] or nil
-    if entry ~= nil then Transport.send("undoKill", { id = entry.id }) end
+    if entry ~= nil then self:send("undoKill", { id = entry.id }) end
 end
 
 --- Sends forgive-everyone.
 function ARE_RepEditorWindow:onForgiveAll()
-    Transport.send("forgiveAll", {})
+    self:send("forgiveAll", {})
 end
 
 Transport.listen(function(state)
